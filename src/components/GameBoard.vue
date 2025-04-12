@@ -126,15 +126,18 @@
               !gameState.diceHidden
                 ? 'bg-gray-100 opacity-70 cursor-not-allowed text-gray-500'
                 : '',
+              // Disable during computer turn
+              !isPlayerTurn ? 'cursor-not-allowed opacity-80' : '',
               // Default style for selectable dice
               !die.isLocked &&
               !die.isSelected &&
               die.isValidSelection &&
-              !gameState.diceHidden
+              !gameState.diceHidden &&
+              isPlayerTurn
                 ? 'bg-white cursor-pointer hover:bg-blue-50'
                 : '',
             ]"
-            @click="toggleDieSelection(index)"
+            @click="isPlayerTurn && toggleDieSelection(index)"
           >
             {{ gameState.diceHidden ? "X" : die.value }}
           </div>
