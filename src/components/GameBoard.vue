@@ -91,6 +91,23 @@
           </div>
         </div>
 
+        <!-- Qualification Warning Message -->
+        <div v-if="showQualificationWarning" class="text-center mb-4">
+          <div
+            class="bg-yellow-100 border border-yellow-400 text-yellow-800 p-3 rounded relative"
+            role="alert"
+          >
+            <span class="block sm:inline text-lg font-bold">
+              Qualification Required!
+            </span>
+            <p class="text-sm">
+              You need at least {{ MIN_QUALIFYING_SCORE }} points in one turn to
+              qualify. Current turn total:
+              {{ gameState.currentTurnScore + gameState.potentialScore }}
+            </p>
+          </div>
+        </div>
+
         <!-- Dice Area -->
         <div class="flex justify-center gap-4 mb-4">
           <div
@@ -130,8 +147,13 @@
                 ? 'bg-blue-500 text-white hover:bg-blue-600'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed',
             ]"
+            :title="keepScoreButtonTooltip"
           >
-            Keep Score
+            Keep Score{{
+              !currentPlayer.isQualified
+                ? ` (Need ${MIN_QUALIFYING_SCORE})`
+                : ""
+            }}
           </button>
         </div>
       </div>
@@ -187,7 +209,7 @@
 <script setup lang="ts">
 import { useGameStore } from "../composables/useGameStore"
 import ComputerAI from "./ComputerAI.vue"
-import { ref, watch } from "vue"
+import { ref, watch, computed } from "vue"
 
 // Define the interface for the exposed methods from ComputerAI
 interface ComputerAIExpose {
@@ -211,6 +233,40 @@ const {
 } = useGameStore()
 
 const MIN_QUALIFYING_SCORE = 1000
+
+// Computed property to determine if qualification warning should be shown
+const showQualificationWarning = computed(() => {
+  // Only show for the human player's turn
+  if (!isPlayerTurn.value || gameState.value.isBust) return false
+
+  // Only show if not already qualified
+  if (currentPlayer.value.isQualified) return false
+
+  // Show if there are points selected but not enough to qualify
+  const turnTotal =
+    gameState.value.currentTurnScore + gameState.value.potentialScore
+  return turnTotal > 0 && turnTotal < MIN_QUALIFYING_SCORE
+})
+
+// Tooltip for the Keep Score button
+const keepScoreButtonTooltip = computed(() => {
+  const turnTotal =
+    gameState.value.currentTurnScore + gameState.value.potentialScore
+
+  if (!currentPlayer.value.isQualified && turnTotal < MIN_QUALIFYING_SCORE) {
+    return `You need at least ${MIN_QUALIFYING_SCORE} points in one turn to qualify. Current: ${turnTotal}`
+  }
+
+  if (!canKeepScore.value) {
+    return "No points to keep"
+  }
+
+  if (!isPlayerTurn.value) {
+    return "Not your turn"
+  }
+
+  return "Bank your points and end your turn"
+})
 
 // Watch for end turn transitions to make sure computer's turn is triggered
 watch(

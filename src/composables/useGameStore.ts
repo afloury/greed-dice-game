@@ -53,11 +53,19 @@ export function useGameStore() {
   const canKeepScore = computed(() => {
     const totalScore =
       gameState.value.currentTurnScore + gameState.value.potentialScore
-    return (
-      totalScore > 0 &&
-      (currentPlayer.value.isQualified || totalScore >= MIN_QUALIFYING_SCORE) &&
-      !gameState.value.isBust
-    )
+
+    // Cannot keep score if there's a bust
+    if (gameState.value.isBust) return false
+
+    // Cannot keep score if there are no points
+    if (totalScore <= 0) return false
+
+    // Check qualification criteria
+    const isQualified = currentPlayer.value.isQualified
+    const meetsQualificationThreshold = totalScore >= MIN_QUALIFYING_SCORE
+
+    // Either player must be qualified already OR the current score must meet the threshold
+    return isQualified || meetsQualificationThreshold
   })
 
   function rollDice() {
@@ -127,13 +135,14 @@ export function useGameStore() {
       }
     }
 
-    // Check for triplets (3 of a kind)
+    // Check for triplets, four of a kind, or five of a kind
     const valueCounts: Record<number, number> = {}
     rolledDice.forEach((value) => {
       valueCounts[value] = (valueCounts[value] || 0) + 1
     })
 
     for (let value = 1; value <= 6; value++) {
+      // Check for any set of 3 or more dice
       if (valueCounts[value] && valueCounts[value] >= 3) {
         return true
       }
@@ -181,23 +190,39 @@ export function useGameStore() {
         valueCounts[value] = (valueCounts[value] || 0) + 1
       })
 
-      // Check for triplets (3 of a kind)
+      // Check for four/five of a kind or triplets
       for (let value = 1; value <= 6; value++) {
-        if (valueCounts[value] && valueCounts[value] >= 3) {
-          if (value === 1) {
-            score += 1000 // Three 1s = 1000 points
-          } else {
-            score += value * 100 // Three of value = value * 100 points
+        if (valueCounts[value]) {
+          const count = valueCounts[value]
+          let countToRemove = 0
+          let pointsForSet = 0
+
+          if (count >= 5) {
+            // Five of a kind: 3× three of a kind
+            pointsForSet = value === 1 ? 3000 : value * 300 // 3x the three-of-a-kind value
+            countToRemove = 5
+          } else if (count >= 4) {
+            // Four of a kind: 2× three of a kind
+            pointsForSet = value === 1 ? 2000 : value * 200 // 2x the three-of-a-kind value
+            countToRemove = 4
+          } else if (count >= 3) {
+            // Three of a kind
+            pointsForSet = value === 1 ? 1000 : value * 100
+            countToRemove = 3
           }
-          // Remove these dice from consideration
-          let countToRemove = 3
-          remainingDice = remainingDice.filter((v) => {
-            if (v === value && countToRemove > 0) {
-              countToRemove--
-              return false // Remove this die
-            }
-            return true // Keep this die
-          })
+
+          if (countToRemove > 0) {
+            score += pointsForSet
+
+            // Remove these dice from consideration
+            remainingDice = remainingDice.filter((v) => {
+              if (v === value && countToRemove > 0) {
+                countToRemove--
+                return false // Remove this die
+              }
+              return true // Keep this die
+            })
+          }
         }
       }
 
@@ -291,23 +316,39 @@ export function useGameStore() {
         valueCounts[value] = (valueCounts[value] || 0) + 1
       })
 
-      // Check for triplets (3 of a kind)
+      // Check for four/five of a kind or triplets
       for (let value = 1; value <= 6; value++) {
-        if (valueCounts[value] && valueCounts[value] >= 3) {
-          if (value === 1) {
-            score += 1000 // Three 1s = 1000 points
-          } else {
-            score += value * 100 // Three of value = value * 100 points
+        if (valueCounts[value]) {
+          const count = valueCounts[value]
+          let countToRemove = 0
+          let pointsForSet = 0
+
+          if (count >= 5) {
+            // Five of a kind: 3× three of a kind
+            pointsForSet = value === 1 ? 3000 : value * 300 // 3x the three-of-a-kind value
+            countToRemove = 5
+          } else if (count >= 4) {
+            // Four of a kind: 2× three of a kind
+            pointsForSet = value === 1 ? 2000 : value * 200 // 2x the three-of-a-kind value
+            countToRemove = 4
+          } else if (count >= 3) {
+            // Three of a kind
+            pointsForSet = value === 1 ? 1000 : value * 100
+            countToRemove = 3
           }
-          // Remove these dice from consideration
-          let countToRemove = 3
-          remainingDice = remainingDice.filter((v) => {
-            if (v === value && countToRemove > 0) {
-              countToRemove--
-              return false // Remove this die
-            }
-            return true // Keep this die
-          })
+
+          if (countToRemove > 0) {
+            score += pointsForSet
+
+            // Remove these dice from consideration
+            remainingDice = remainingDice.filter((v) => {
+              if (v === value && countToRemove > 0) {
+                countToRemove--
+                return false // Remove this die
+              }
+              return true // Keep this die
+            })
+          }
         }
       }
 
@@ -344,9 +385,20 @@ export function useGameStore() {
     if (!canKeepScore.value) return
 
     const player = currentPlayer.value
-    // Add both current turn score and potential score
-    player.totalScore +=
+    const turnTotal =
       gameState.value.currentTurnScore + gameState.value.potentialScore
+
+    // Additional safety check: Don't allow keeping score below qualification threshold
+    // if player is not yet qualified
+    if (!player.isQualified && turnTotal < MIN_QUALIFYING_SCORE) {
+      console.log(
+        `Cannot keep score of ${turnTotal} - below qualification threshold of ${MIN_QUALIFYING_SCORE}`
+      )
+      return
+    }
+
+    // Add both current turn score and potential score
+    player.totalScore += turnTotal
 
     if (!player.isQualified && player.totalScore >= MIN_QUALIFYING_SCORE) {
       player.isQualified = true
@@ -426,16 +478,39 @@ export function useGameStore() {
           return
         }
 
-        // Simple strategy: If score is above threshold, keep it
+        // Calculate available score for this turn
         const totalAvailable =
           gameState.value.currentTurnScore + gameState.value.potentialScore
 
-        if (totalAvailable >= 300) {
-          console.log("Computer keeping score:", totalAvailable)
-          keepScore()
+        // Check if computer is qualified
+        const isComputerQualified = currentPlayer.value.isQualified
+
+        // Different strategies based on qualification status
+        if (!isComputerQualified) {
+          // If not qualified yet, only keep score if it meets the minimum qualifying score
+          if (totalAvailable >= MIN_QUALIFYING_SCORE) {
+            console.log(
+              `Computer keeping score: ${totalAvailable} (meets qualification threshold)`
+            )
+            keepScore()
+          } else {
+            // Not enough to qualify, keep rolling
+            console.log(
+              `Computer rolling again: ${totalAvailable} not enough to qualify (need ${MIN_QUALIFYING_SCORE})`
+            )
+            playComputerTurn() // Recursive call for next action
+          }
         } else {
-          console.log("Computer rolling again for more points")
-          playComputerTurn() // Recursive call for next action
+          // Already qualified, use normal strategy
+          if (totalAvailable >= 300) {
+            console.log(
+              `Computer keeping score: ${totalAvailable} (already qualified)`
+            )
+            keepScore()
+          } else {
+            console.log("Computer rolling again for more points")
+            playComputerTurn() // Recursive call for next action
+          }
         }
       }, 1500)
     }, 1500)
@@ -469,18 +544,65 @@ export function useGameStore() {
       diceByValue[key].push(die)
     })
 
-    // First select any triplets
+    // First check for straights if all 5 dice are available
+    if (unlockedDice.length === 5) {
+      const values = unlockedDice.map((die) => die.value).sort()
+      const isStraight1 = [1, 2, 3, 4, 5].every((num) => values.includes(num))
+      const isStraight2 = [2, 3, 4, 5, 6].every((num) => values.includes(num))
+
+      if (isStraight1 || isStraight2) {
+        // Select all dice if straight
+        unlockedDice.forEach((die) => {
+          gameState.value.dice[die.index].isSelected = true
+        })
+        calculatePotentialScore()
+        return
+      }
+    }
+
+    // Select sets based on their value (five of a kind, four of a kind, three of a kind)
     let selectionMade = false
+
+    // First prioritize any sets of five
+    for (let value = 1; value <= 6; value++) {
+      if (diceByValue[value] && diceByValue[value].length >= 5) {
+        diceByValue[value].slice(0, 5).forEach((die) => {
+          gameState.value.dice[die.index].isSelected = true
+          selectionMade = true
+        })
+        // If we found a set of five, we've used all dice
+        if (selectionMade) {
+          calculatePotentialScore()
+          return
+        }
+      }
+    }
+
+    // Then check for sets of four
+    for (let value = 1; value <= 6; value++) {
+      if (diceByValue[value] && diceByValue[value].length >= 4) {
+        diceByValue[value].slice(0, 4).forEach((die) => {
+          gameState.value.dice[die.index].isSelected = true
+          selectionMade = true
+        })
+        // Remove these dice from consideration
+        diceByValue[value] = diceByValue[value].slice(4)
+      }
+    }
+
+    // Then check for sets of three
     for (let value = 1; value <= 6; value++) {
       if (diceByValue[value] && diceByValue[value].length >= 3) {
         diceByValue[value].slice(0, 3).forEach((die) => {
           gameState.value.dice[die.index].isSelected = true
           selectionMade = true
         })
+        // Remove these dice from consideration
+        diceByValue[value] = diceByValue[value].slice(3)
       }
     }
 
-    // Then select any 1s and 5s
+    // Then select any individual 1s and 5s that aren't part of sets
     if (diceByValue[1]) {
       diceByValue[1].forEach((die) => {
         gameState.value.dice[die.index].isSelected = true
