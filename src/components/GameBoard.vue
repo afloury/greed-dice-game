@@ -64,7 +64,9 @@
             </div>
             <div class="settings-modal-body">
               <div class="settings-section">
-                <h3 class="text-lg font-medium mb-4">{{ isEnglish ? "Display" : "Affichage" }}</h3>
+                <h3 class="text-lg font-medium mb-4">
+                  {{ isEnglish ? "Display" : "Affichage" }}
+                </h3>
                 <div class="flex items-center justify-between mb-4">
                   <span>{{ isEnglish ? "Dark Mode" : "Mode Sombre" }}</span>
                   <button
@@ -93,8 +95,10 @@
                     {{ isEnglish ? "🇫🇷" : "🇬🇧" }}
                   </button>
                 </div>
-                
-                <h3 class="text-lg font-medium mb-4">{{ isEnglish ? "Sound" : "Son" }}</h3>
+
+                <h3 class="text-lg font-medium mb-4">
+                  {{ isEnglish ? "Sound" : "Son" }}
+                </h3>
                 <label class="block mb-2">
                   {{
                     isEnglish
@@ -286,18 +290,6 @@
           </div>
         </div>
 
-        <!-- Hidden Dice Message -->
-        <div
-          v-if="gameState.diceHidden"
-          class="text-center text-gray-500 text-sm mb-4"
-        >
-          {{
-            isEnglish
-              ? "Roll dice to start your turn"
-              : "Lancez les dés pour commencer votre tour"
-          }}
-        </div>
-
         <!-- Game Controls -->
         <div class="flex justify-center gap-4 mb-4">
           <button
@@ -335,9 +327,72 @@
           </button>
         </div>
 
+        <!-- Hidden Dice Message -->
+        <div
+          v-if="gameState.diceHidden"
+          class="text-center text-gray-500 text-sm mt-4 mb-2"
+        >
+          {{
+            isEnglish
+              ? "Roll dice to start your turn"
+              : "Lancez les dés pour commencer votre tour"
+          }}
+        </div>
+
+        <!-- Bust Message -->
+        <div v-if="gameState.isBust" class="text-center mt-4 mb-2">
+          <div
+            class="p-3 rounded relative"
+            role="alert"
+            :class="{
+              'bg-red-100 border border-red-400 text-red-700': !isDarkMode,
+              'bg-red-900 border border-red-800 text-red-200': isDarkMode,
+            }"
+          >
+            <span class="block sm:inline text-lg font-bold">{{
+              translateBustMessage(gameState.bustMessage)
+            }}</span>
+            <p class="text-sm">
+              {{
+                isEnglish
+                  ? "Transitioning to next player..."
+                  : "Passage au joueur suivant..."
+              }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Qualification Warning Message -->
+        <div v-if="showQualificationWarning" class="text-center mt-4 mb-2">
+          <div
+            class="p-3 rounded relative"
+            role="alert"
+            :class="{
+              'bg-yellow-100 border border-yellow-400 text-yellow-800':
+                !isDarkMode,
+              'bg-yellow-900 border border-yellow-700 text-yellow-200':
+                isDarkMode,
+            }"
+          >
+            <span class="block sm:inline text-lg font-bold">
+              {{
+                isEnglish ? "Qualification Required!" : "Qualification Requise!"
+              }}
+            </span>
+            <p class="text-sm">
+              {{
+                isEnglish
+                  ? `You need at least ${MIN_QUALIFYING_SCORE} points in one turn to qualify. Current turn total:`
+                  : `Vous avez besoin d'au moins ${MIN_QUALIFYING_SCORE} points en un tour pour vous qualifier. Total du tour actuel:`
+              }}
+              {{ gameState.currentTurnScore + gameState.potentialScore }}
+            </p>
+          </div>
+        </div>
+
         <!-- Dice Legend -->
         <div
-          class="mt-2 text-xs grid grid-cols-2 gap-2 max-w-md mx-auto"
+          class="mt-4 text-xs grid grid-cols-2 gap-2 max-w-md mx-auto"
           :class="{
             'text-gray-600': !isDarkMode,
             'text-gray-300': isDarkMode,
@@ -394,57 +449,6 @@
             <span>{{
               isEnglish ? "Not scorable" : "Non comptabilisable"
             }}</span>
-          </div>
-        </div>
-
-        <!-- Bust Message -->
-        <div v-if="gameState.isBust" class="text-center mt-4 mb-2">
-          <div
-            class="p-3 rounded relative"
-            role="alert"
-            :class="{
-              'bg-red-100 border border-red-400 text-red-700': !isDarkMode,
-              'bg-red-900 border border-red-800 text-red-200': isDarkMode,
-            }"
-          >
-            <span class="block sm:inline text-lg font-bold">{{
-              translateBustMessage(gameState.bustMessage)
-            }}</span>
-            <p class="text-sm">
-              {{
-                isEnglish
-                  ? "Transitioning to next player..."
-                  : "Passage au joueur suivant..."
-              }}
-            </p>
-          </div>
-        </div>
-
-        <!-- Qualification Warning Message -->
-        <div v-if="showQualificationWarning" class="text-center mt-4 mb-2">
-          <div
-            class="p-3 rounded relative"
-            role="alert"
-            :class="{
-              'bg-yellow-100 border border-yellow-400 text-yellow-800':
-                !isDarkMode,
-              'bg-yellow-900 border border-yellow-700 text-yellow-200':
-                isDarkMode,
-            }"
-          >
-            <span class="block sm:inline text-lg font-bold">
-              {{
-                isEnglish ? "Qualification Required!" : "Qualification Requise!"
-              }}
-            </span>
-            <p class="text-sm">
-              {{
-                isEnglish
-                  ? `You need at least ${MIN_QUALIFYING_SCORE} points in one turn to qualify. Current turn total:`
-                  : `Vous avez besoin d'au moins ${MIN_QUALIFYING_SCORE} points en un tour pour vous qualifier. Total du tour actuel:`
-              }}
-              {{ gameState.currentTurnScore + gameState.potentialScore }}
-            </p>
           </div>
         </div>
       </div>
