@@ -32,28 +32,6 @@
               ⚙️
             </button>
             <button
-              @click="toggleDarkMode"
-              class="p-2 rounded-lg font-semibold transition-all duration-200"
-              :class="[
-                isDarkMode
-                  ? 'bg-yellow-500 text-white hover:bg-yellow-400'
-                  : 'bg-gray-700 text-white hover:bg-gray-600',
-              ]"
-            >
-              {{ isDarkMode ? "☀️" : "🌙" }}
-            </button>
-            <button
-              @click="toggleLanguage"
-              class="p-2 rounded-lg font-semibold transition-all duration-200"
-              :class="[
-                isDarkMode
-                  ? 'bg-gray-600 text-white hover:bg-gray-500'
-                  : 'bg-gray-500 text-white hover:bg-gray-600',
-              ]"
-            >
-              {{ isEnglish ? "🇫🇷" : "🇬🇧" }}
-            </button>
-            <button
               @click="handleResetGame"
               class="px-4 py-2 rounded-lg font-semibold transition-all duration-200"
               :class="[
@@ -86,6 +64,37 @@
             </div>
             <div class="settings-modal-body">
               <div class="settings-section">
+                <h3 class="text-lg font-medium mb-4">{{ isEnglish ? "Display" : "Affichage" }}</h3>
+                <div class="flex items-center justify-between mb-4">
+                  <span>{{ isEnglish ? "Dark Mode" : "Mode Sombre" }}</span>
+                  <button
+                    @click="toggleDarkMode"
+                    class="p-2 rounded-lg font-semibold transition-all duration-200"
+                    :class="[
+                      isDarkMode
+                        ? 'bg-yellow-500 text-white hover:bg-yellow-400'
+                        : 'bg-gray-700 text-white hover:bg-gray-600',
+                    ]"
+                  >
+                    {{ isDarkMode ? "☀️" : "🌙" }}
+                  </button>
+                </div>
+                <div class="flex items-center justify-between mb-6">
+                  <span>{{ isEnglish ? "Language" : "Langue" }}</span>
+                  <button
+                    @click="toggleLanguage"
+                    class="p-2 rounded-lg font-semibold transition-all duration-200"
+                    :class="[
+                      isDarkMode
+                        ? 'bg-gray-600 text-white hover:bg-gray-500'
+                        : 'bg-gray-500 text-white hover:bg-gray-600',
+                    ]"
+                  >
+                    {{ isEnglish ? "🇫🇷" : "🇬🇧" }}
+                  </button>
+                </div>
+                
+                <h3 class="text-lg font-medium mb-4">{{ isEnglish ? "Sound" : "Son" }}</h3>
                 <label class="block mb-2">
                   {{
                     isEnglish
