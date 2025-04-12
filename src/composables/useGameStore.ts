@@ -37,25 +37,33 @@ export function useGameStore() {
     lastRollScore: 0,
     potentialScore: 0,
     isFirstRoll: true,
+    isBust: false,
+    bustMessage: "",
   })
 
   const currentPlayer = computed(
     () => gameState.value.players[gameState.value.currentPlayer]
   )
   const isPlayerTurn = computed(() => !currentPlayer.value.isComputer)
-  const canRoll = computed(() =>
-    gameState.value.dice.some((die) => !die.isLocked)
+  const canRoll = computed(
+    () =>
+      gameState.value.dice.some((die) => !die.isLocked) &&
+      !gameState.value.isBust
   )
   const canKeepScore = computed(() => {
     const totalScore =
       gameState.value.currentTurnScore + gameState.value.potentialScore
     return (
       totalScore > 0 &&
-      (currentPlayer.value.isQualified || totalScore >= MIN_QUALIFYING_SCORE)
+      (currentPlayer.value.isQualified || totalScore >= MIN_QUALIFYING_SCORE) &&
+      !gameState.value.isBust
     )
   })
 
   function rollDice() {
+    // Don't allow rolling if it's a bust
+    if (gameState.value.isBust) return
+
     // Add potential score to current turn score and reset potential score
     gameState.value.currentTurnScore += gameState.value.potentialScore
     gameState.value.potentialScore = 0
@@ -100,6 +108,43 @@ export function useGameStore() {
     if (hasRolledDice) {
       calculateRollScore()
     }
+  }
+
+  function checkForPossibleScores(rolledDice: number[]): boolean {
+    if (rolledDice.length === 0) return false
+
+    // Check for straights only if we rolled all 5 dice
+    if (rolledDice.length === 5) {
+      const isStraight1 = [1, 2, 3, 4, 5].every((num) =>
+        rolledDice.includes(num)
+      )
+      const isStraight2 = [2, 3, 4, 5, 6].every((num) =>
+        rolledDice.includes(num)
+      )
+
+      if (isStraight1 || isStraight2) {
+        return true
+      }
+    }
+
+    // Check for triplets (3 of a kind)
+    const valueCounts: Record<number, number> = {}
+    rolledDice.forEach((value) => {
+      valueCounts[value] = (valueCounts[value] || 0) + 1
+    })
+
+    for (let value = 1; value <= 6; value++) {
+      if (valueCounts[value] && valueCounts[value] >= 3) {
+        return true
+      }
+    }
+
+    // Check for individual 1s and 5s
+    if (rolledDice.includes(1) || rolledDice.includes(5)) {
+      return true
+    }
+
+    return false
   }
 
   function calculateRollScore() {
@@ -169,16 +214,36 @@ export function useGameStore() {
     // Set last roll score to what we just calculated
     gameState.value.lastRollScore = score
 
-    // If no scoring dice in the roll and no previously locked dice, it's a bust
-    const noPreviouslyLockedDice = !gameState.value.dice.some(
-      (die) => die.isLocked
-    )
+    // Check for bust condition: no scoring dice in the current roll
+    if (score === 0) {
+      handleBust()
+    }
+  }
 
-    if (score === 0 && noPreviouslyLockedDice) {
-      // Bust - lose all current turn points and end turn
+  function handleBust() {
+    // Bust - lose all current turn points and end turn
+    const player = currentPlayer.value
+    let message = ""
+
+    if (gameState.value.currentTurnScore > 0) {
+      message = `Bust! ${player.name} lost ${gameState.value.currentTurnScore} points from this turn!`
+    } else {
+      message = `Bust! No scoring combinations possible!`
+    }
+
+    gameState.value.bustMessage = message
+    gameState.value.isBust = true
+
+    // Disable all dice selection
+    gameState.value.dice.forEach((die) => {
+      die.isSelected = false
+    })
+
+    // Automatically transition to next player after a delay
+    setTimeout(() => {
       gameState.value.currentTurnScore = 0
       endTurn()
-    }
+    }, 2000)
   }
 
   function calculatePotentialScore() {
@@ -254,7 +319,12 @@ export function useGameStore() {
   }
 
   function toggleDieSelection(index: number) {
-    if (!isPlayerTurn.value || gameState.value.dice[index].isLocked) return
+    if (
+      !isPlayerTurn.value ||
+      gameState.value.dice[index].isLocked ||
+      gameState.value.isBust
+    )
+      return
 
     gameState.value.dice[index].isSelected =
       !gameState.value.dice[index].isSelected
@@ -289,6 +359,8 @@ export function useGameStore() {
     gameState.value.lastRollScore = 0
     gameState.value.potentialScore = 0
     gameState.value.isFirstRoll = true
+    gameState.value.isBust = false
+    gameState.value.bustMessage = ""
     gameState.value.dice.forEach((die) => {
       die.isLocked = false
       die.isSelected = false
@@ -329,6 +401,8 @@ export function useGameStore() {
       lastRollScore: 0,
       potentialScore: 0,
       isFirstRoll: true,
+      isBust: false,
+      bustMessage: "",
     }
   }
 

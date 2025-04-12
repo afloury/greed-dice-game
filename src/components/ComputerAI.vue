@@ -1,9 +1,9 @@
 <template>
   <div
-    v-if="isComputerTurn"
+    v-if="isComputerTurn || (computerStartsAfterBust && gameState.isBust)"
     class="bg-yellow-50 border border-yellow-200 p-3 rounded-lg text-center mb-4"
   >
-    <p class="text-lg font-semibold">Computer is thinking...</p>
+    <p class="text-lg font-semibold">{{ computerActionText }}</p>
     <p class="text-sm mt-1">{{ computerThoughtText }}</p>
   </div>
 </template>
@@ -20,6 +20,12 @@ interface DieWithIndex {
 }
 
 const computerThoughtText = ref("Deciding what to do...")
+const computerActionText = computed(() => {
+  if (gameState.value.isBust && computerStartsAfterBust.value) {
+    return "Player busted! Computer's turn..."
+  }
+  return "Computer is thinking..."
+})
 
 const { gameState, currentPlayer, rollDice, keepScore } = useGameStore()
 
@@ -29,6 +35,13 @@ const isComputerTurn = computed(
     gameState.value.players[gameState.value.currentPlayer].isComputer &&
     !gameState.value.isGameOver
 )
+
+// Check if computer will play next after a player bust
+const computerStartsAfterBust = computed(() => {
+  const nextPlayerIndex =
+    (gameState.value.currentPlayer + 1) % gameState.value.players.length
+  return gameState.value.players[nextPlayerIndex].isComputer
+})
 
 function selectBestScoringDice() {
   // Get all unlocked dice that aren't selected
@@ -109,7 +122,7 @@ function selectBestScoringDice() {
 }
 
 function makeComputerDecision() {
-  if (!isComputerTurn.value) return
+  if (!isComputerTurn.value || gameState.value.isBust) return
 
   // Add a check for the case where all dice are locked
   const allDiceLocked = gameState.value.dice.every((die) => die.isLocked)
@@ -235,7 +248,15 @@ watch(
     if (newValue) {
       console.log("Computer's turn detected")
       // Start the computer's turn with a delay
-      setTimeout(makeComputerDecision, 1000)
+      if (gameState.value.isBust) {
+        // When it's computer's turn after a player bust, give a longer delay
+        // to let the user see the bust message
+        computerThoughtText.value = "Getting ready after player bust..."
+        setTimeout(makeComputerDecision, 3000)
+      } else {
+        // Normal computer turn
+        setTimeout(makeComputerDecision, 1000)
+      }
     }
   },
   { immediate: true }

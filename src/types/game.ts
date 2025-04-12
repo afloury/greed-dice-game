@@ -22,6 +22,8 @@ export interface GameState {
   lastRollScore: number
   potentialScore: number
   isFirstRoll: boolean
+  isBust: boolean
+  bustMessage: string
 }
 
 export interface ScoringRule {

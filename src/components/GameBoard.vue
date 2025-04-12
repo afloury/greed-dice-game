@@ -45,6 +45,7 @@
 
       <!-- Game Board -->
       <div class="bg-white rounded-lg shadow-lg p-4 mb-4">
+        <!-- Scoring -->
         <div class="text-center mb-4">
           <h2 class="text-xl font-bold">Scoring</h2>
           <div class="grid grid-cols-2 gap-2 text-left max-w-md mx-auto mt-2">
@@ -74,6 +75,19 @@
                 gameState.currentTurnScore + gameState.potentialScore
               }}</span>
             </div>
+          </div>
+        </div>
+
+        <!-- Bust Message -->
+        <div v-if="gameState.isBust" class="text-center mb-4">
+          <div
+            class="bg-red-100 border border-red-400 text-red-700 p-3 rounded relative"
+            role="alert"
+          >
+            <span class="block sm:inline text-lg font-bold">{{
+              gameState.bustMessage
+            }}</span>
+            <p class="text-sm">Transitioning to next player...</p>
           </div>
         </div>
 
@@ -139,7 +153,9 @@
               <li>Four of a kind: 2× three of a kind</li>
               <li>Five of a kind: 3× three of a kind</li>
               <li>Straight (1-5 or 2-6): 1,500 points</li>
-              <li>No scoring dice: Bust (lose turn)</li>
+              <li class="text-red-600 font-semibold">
+                No scoring dice: Bust (lose all turn points!)
+              </li>
             </ul>
           </div>
         </div>
