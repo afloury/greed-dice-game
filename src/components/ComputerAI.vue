@@ -1,7 +1,11 @@
 <template>
   <div
     v-if="isComputerTurn || showWaitingMessage"
-    class="bg-yellow-50 border border-yellow-200 p-3 rounded-lg text-center mb-4"
+    class="border p-3 rounded-lg text-center mb-4"
+    :class="{
+      'bg-yellow-50 border-yellow-200': !isDarkMode,
+      'bg-yellow-900 border-yellow-800': isDarkMode,
+    }"
   >
     <p class="text-lg font-semibold">{{ computerActionText }}</p>
     <p class="text-sm mt-1">{{ statusMessage }}</p>
@@ -14,6 +18,7 @@ import { useGameStore } from "../composables/useGameStore"
 
 const statusMessage = ref("Computer is thinking...")
 const store = useGameStore()
+const { isDarkMode } = store
 
 // Simplified computed properties
 const isComputerTurn = computed(

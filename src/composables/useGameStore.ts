@@ -1,4 +1,4 @@
-import { ref, computed } from "vue"
+import { ref, computed, watch } from "vue"
 import type { GameState, Player, Die, ScoringRule } from "../types/game"
 import { SCORING_RULES } from "../types/game"
 
@@ -6,6 +6,23 @@ const MIN_QUALIFYING_SCORE = 1000
 const WINNING_SCORE = 10000
 
 export function useGameStore() {
+  // Dark mode state
+  const isDarkMode = ref(
+    window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+  )
+
+  // Toggle dark mode
+  const toggleDarkMode = () => {
+    isDarkMode.value = !isDarkMode.value
+    document.documentElement.classList.toggle("dark", isDarkMode.value)
+  }
+
+  // Initialize dark mode based on system preference
+  if (isDarkMode.value) {
+    document.documentElement.classList.add("dark")
+  }
+
   const gameState = ref<GameState>({
     players: [
       {
@@ -740,5 +757,7 @@ export function useGameStore() {
     keepScore,
     resetGame,
     playComputerTurn,
+    isDarkMode,
+    toggleDarkMode,
   }
 }

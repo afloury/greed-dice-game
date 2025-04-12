@@ -1,20 +1,44 @@
 <template>
-  <div class="min-h-screen bg-gray-100 p-4">
+  <div
+    class="min-h-screen p-4"
+    :class="{ 'bg-gray-100': !isDarkMode, 'bg-gray-900': isDarkMode }"
+  >
     <div class="max-w-4xl mx-auto">
       <!-- Game Header -->
-      <div class="bg-white rounded-lg shadow-lg p-4 mb-4">
+      <div
+        class="rounded-lg shadow-lg p-4 mb-4"
+        :class="{ 'bg-white': !isDarkMode, 'bg-gray-800': isDarkMode }"
+      >
         <h1 class="text-3xl font-bold text-center mb-4">10,000 Dice Game</h1>
         <div class="flex justify-between items-center">
           <div class="text-lg">
             Current Phase:
             <span class="font-semibold">{{ gameState.gamePhase }}</span>
           </div>
-          <button
-            @click="handleResetGame"
-            class="px-4 py-2 rounded-lg font-semibold bg-gray-500 text-white hover:bg-gray-600 transition-all duration-200"
-          >
-            New Game
-          </button>
+          <div class="flex gap-2">
+            <button
+              @click="toggleDarkMode"
+              class="p-2 rounded-lg font-semibold transition-all duration-200"
+              :class="[
+                isDarkMode
+                  ? 'bg-yellow-500 text-white hover:bg-yellow-400'
+                  : 'bg-gray-700 text-white hover:bg-gray-600',
+              ]"
+            >
+              {{ isDarkMode ? "☀️" : "🌙" }}
+            </button>
+            <button
+              @click="handleResetGame"
+              class="px-4 py-2 rounded-lg font-semibold transition-all duration-200"
+              :class="[
+                isDarkMode
+                  ? 'bg-gray-600 text-white hover:bg-gray-500'
+                  : 'bg-gray-500 text-white hover:bg-gray-600',
+              ]"
+            >
+              New Game
+            </button>
+          </div>
         </div>
       </div>
 
@@ -24,8 +48,9 @@
           v-for="player in gameState.players"
           :key="player.id"
           :class="[
-            'bg-white rounded-lg shadow-lg p-4',
+            'rounded-lg shadow-lg p-4',
             currentPlayer.id === player.id ? 'ring-2 ring-blue-500' : '',
+            isDarkMode ? 'bg-gray-800' : 'bg-white',
           ]"
         >
           <h2 class="text-xl font-bold mb-2">{{ player.name }}</h2>
@@ -44,7 +69,10 @@
       <ComputerAI ref="computerAIRef" />
 
       <!-- Game Board -->
-      <div class="bg-white rounded-lg shadow-lg p-4 mb-4">
+      <div
+        class="rounded-lg shadow-lg p-4 mb-4"
+        :class="{ 'bg-white': !isDarkMode, 'bg-gray-800': isDarkMode }"
+      >
         <!-- Scoring -->
         <div class="text-center mb-4">
           <h2 class="text-xl font-bold">Scoring</h2>
@@ -75,8 +103,12 @@
         <!-- Bust Message -->
         <div v-if="gameState.isBust" class="text-center mb-4">
           <div
-            class="bg-red-100 border border-red-400 text-red-700 p-3 rounded relative"
+            class="p-3 rounded relative"
             role="alert"
+            :class="{
+              'bg-red-100 border border-red-400 text-red-700': !isDarkMode,
+              'bg-red-900 border border-red-800 text-red-200': isDarkMode,
+            }"
           >
             <span class="block sm:inline text-lg font-bold">{{
               gameState.bustMessage
@@ -88,8 +120,14 @@
         <!-- Qualification Warning Message -->
         <div v-if="showQualificationWarning" class="text-center mb-4">
           <div
-            class="bg-yellow-100 border border-yellow-400 text-yellow-800 p-3 rounded relative"
+            class="p-3 rounded relative"
             role="alert"
+            :class="{
+              'bg-yellow-100 border border-yellow-400 text-yellow-800':
+                !isDarkMode,
+              'bg-yellow-900 border border-yellow-700 text-yellow-200':
+                isDarkMode,
+            }"
           >
             <span class="block sm:inline text-lg font-bold">
               Qualification Required!
@@ -110,10 +148,12 @@
             :class="[
               'w-12 h-12 md:w-16 md:h-16 rounded-lg shadow-lg flex items-center justify-center text-2xl font-bold transition-all duration-200',
               // Dice that are selected
-              die.isSelected ? 'bg-blue-100 ring-2 ring-blue-500' : '',
+              die.isSelected
+                ? 'bg-blue-100 ring-2 ring-blue-500 text-blue-800'
+                : '',
               // Dice that are locked (banked from previous roll)
               die.isLocked
-                ? 'bg-green-100 border-2 border-green-500 cursor-not-allowed'
+                ? 'bg-green-100 border-2 border-green-500 cursor-not-allowed text-green-800'
                 : '',
               // Dice that are hidden between turns
               gameState.diceHidden
@@ -134,7 +174,9 @@
               die.isValidSelection &&
               !gameState.diceHidden &&
               isPlayerTurn
-                ? 'bg-white cursor-pointer hover:bg-blue-50'
+                ? isDarkMode
+                  ? 'bg-gray-700 text-white cursor-pointer hover:bg-gray-600'
+                  : 'bg-white cursor-pointer hover:bg-blue-50'
                 : '',
             ]"
             @click="isPlayerTurn && toggleDieSelection(index)"
@@ -186,10 +228,21 @@
 
         <!-- Dice Legend -->
         <div
-          class="mt-2 text-xs text-gray-600 grid grid-cols-2 gap-2 max-w-md mx-auto"
+          class="mt-2 text-xs grid grid-cols-2 gap-2 max-w-md mx-auto"
+          :class="{
+            'text-gray-600': !isDarkMode,
+            'text-gray-300': isDarkMode,
+          }"
         >
           <div class="flex items-center">
-            <div class="w-4 h-4 bg-white border border-gray-300 mr-1"></div>
+            <div
+              class="w-4 h-4 border mr-1"
+              :class="[
+                isDarkMode
+                  ? 'bg-gray-700 border-gray-600'
+                  : 'bg-white border-gray-300',
+              ]"
+            ></div>
             <span>Selectable (scores points)</span>
           </div>
           <div class="flex items-center">
@@ -203,14 +256,20 @@
             <span>Locked (banked points)</span>
           </div>
           <div class="flex items-center">
-            <div class="w-4 h-4 bg-gray-100 opacity-70 mr-1"></div>
+            <div
+              class="w-4 h-4 opacity-70 mr-1"
+              :class="[isDarkMode ? 'bg-gray-600' : 'bg-gray-100']"
+            ></div>
             <span>Not scorable</span>
           </div>
         </div>
       </div>
 
       <!-- Game Rules -->
-      <div class="bg-white rounded-lg shadow-lg p-4 mb-4">
+      <div
+        class="rounded-lg shadow-lg p-4 mb-4"
+        :class="{ 'bg-white': !isDarkMode, 'bg-gray-800': isDarkMode }"
+      >
         <h2 class="text-xl font-bold mb-2 text-center">Scoring Rules</h2>
         <div class="grid grid-cols-2 gap-2">
           <div>
@@ -237,7 +296,8 @@
       <!-- Game Status -->
       <div
         v-if="gameState.isGameOver"
-        class="bg-white rounded-lg shadow-lg p-4 text-center"
+        class="rounded-lg shadow-lg p-4 text-center"
+        :class="{ 'bg-white': !isDarkMode, 'bg-gray-800': isDarkMode }"
       >
         <h2 class="text-2xl font-bold text-green-500 mb-2">Game Over!</h2>
         <p class="text-lg">
@@ -281,6 +341,8 @@ const {
   toggleDieSelection,
   keepScore,
   resetGame,
+  isDarkMode,
+  toggleDarkMode,
 } = useGameStore()
 
 const MIN_QUALIFYING_SCORE = 1000
