@@ -10,6 +10,7 @@ export interface Die {
   value: number
   isSelected: boolean
   isLocked: boolean
+  isValidSelection: boolean
 }
 
 export interface GameState {

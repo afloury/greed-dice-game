@@ -114,11 +114,30 @@
             v-for="(die, index) in gameState.dice"
             :key="index"
             :class="[
-              'w-12 h-12 md:w-16 md:h-16 rounded-lg bg-white shadow-lg flex items-center justify-center text-2xl font-bold cursor-pointer transition-all duration-200',
+              'w-12 h-12 md:w-16 md:h-16 rounded-lg shadow-lg flex items-center justify-center text-2xl font-bold transition-all duration-200',
+              // Dice that are selected
               die.isSelected ? 'bg-blue-100 ring-2 ring-blue-500' : '',
-              die.isLocked ? 'bg-gray-200 cursor-not-allowed' : '',
+              // Dice that are locked (banked from previous roll)
+              die.isLocked
+                ? 'bg-green-100 border-2 border-green-500 cursor-not-allowed'
+                : '',
+              // Dice that are hidden between turns
               gameState.diceHidden
                 ? 'bg-gray-300 cursor-not-allowed text-gray-500'
+                : '',
+              // Dice that cannot be selected (not part of a scoring combination)
+              !die.isLocked &&
+              !die.isSelected &&
+              !die.isValidSelection &&
+              !gameState.diceHidden
+                ? 'bg-gray-100 opacity-70 cursor-not-allowed text-gray-500'
+                : '',
+              // Default style for selectable dice
+              !die.isLocked &&
+              !die.isSelected &&
+              die.isValidSelection &&
+              !gameState.diceHidden
+                ? 'bg-white cursor-pointer hover:bg-blue-50'
                 : '',
             ]"
             @click="toggleDieSelection(index)"
@@ -136,7 +155,7 @@
         </div>
 
         <!-- Game Controls -->
-        <div class="flex justify-center gap-4">
+        <div class="flex justify-center gap-4 mb-4">
           <button
             @click="rollDice"
             :disabled="!canRoll || !isPlayerTurn"
@@ -166,6 +185,30 @@
                 : ""
             }}
           </button>
+        </div>
+
+        <!-- Dice Legend -->
+        <div
+          class="mt-2 text-xs text-gray-600 grid grid-cols-2 gap-2 max-w-md mx-auto"
+        >
+          <div class="flex items-center">
+            <div class="w-4 h-4 bg-white border border-gray-300 mr-1"></div>
+            <span>Selectable (scores points)</span>
+          </div>
+          <div class="flex items-center">
+            <div class="w-4 h-4 bg-blue-100 ring-1 ring-blue-500 mr-1"></div>
+            <span>Selected</span>
+          </div>
+          <div class="flex items-center">
+            <div
+              class="w-4 h-4 bg-green-100 border-2 border-green-500 mr-1"
+            ></div>
+            <span>Locked (banked points)</span>
+          </div>
+          <div class="flex items-center">
+            <div class="w-4 h-4 bg-gray-100 opacity-70 mr-1"></div>
+            <span>Not scorable</span>
+          </div>
         </div>
       </div>
 

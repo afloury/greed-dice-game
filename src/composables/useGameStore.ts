@@ -31,6 +31,7 @@ export function useGameStore() {
         value: 1,
         isSelected: false,
         isLocked: false,
+        isValidSelection: false,
       })),
     gamePhase: "QUALIFICATION",
     isGameOver: false,
@@ -90,6 +91,8 @@ export function useGameStore() {
       if (die.isSelected) {
         die.isLocked = true
         die.isSelected = false
+        // Locked dice are always valid
+        die.isValidSelection = true
       }
     })
 
@@ -98,6 +101,7 @@ export function useGameStore() {
     if (allLocked) {
       gameState.value.dice.forEach((die) => {
         die.isLocked = false
+        die.isValidSelection = false
       })
     }
 
@@ -107,6 +111,7 @@ export function useGameStore() {
       if (!die.isLocked) {
         die.value = Math.floor(Math.random() * 6) + 1
         die.isSelected = false
+        die.isValidSelection = false
         hasRolledDice = true
       }
     })
@@ -167,6 +172,13 @@ export function useGameStore() {
       .map((die) => die.value)
       .sort()
 
+    // First, mark all unselected dice as not valid for selection
+    gameState.value.dice.forEach((die) => {
+      if (!die.isLocked && !die.isSelected) {
+        die.isValidSelection = false
+      }
+    })
+
     // Check if there are any scoring combinations in the roll
     let score = 0
     let remainingDice = [...rolledDice]
@@ -183,6 +195,13 @@ export function useGameStore() {
       if (isStraight1 || isStraight2) {
         score += 1500
         remainingDice = []
+
+        // All dice in a straight are valid for selection
+        gameState.value.dice.forEach((die, index) => {
+          if (!die.isLocked && !die.isSelected) {
+            die.isValidSelection = true
+          }
+        })
       }
     }
 
@@ -192,6 +211,17 @@ export function useGameStore() {
       const valueCounts: Record<number, number> = {}
       remainingDice.forEach((value) => {
         valueCounts[value] = (valueCounts[value] || 0) + 1
+      })
+
+      // Get indices of dice for each value
+      const valueIndices: Record<number, number[]> = {}
+      gameState.value.dice.forEach((die, index) => {
+        if (!die.isLocked && !die.isSelected) {
+          if (!valueIndices[die.value]) {
+            valueIndices[die.value] = []
+          }
+          valueIndices[die.value].push(index)
+        }
       })
 
       // Check for four/five of a kind or triplets
@@ -218,6 +248,13 @@ export function useGameStore() {
           if (countToRemove > 0) {
             score += pointsForSet
 
+            // Mark dice in this set as valid selections
+            if (valueIndices[value]) {
+              valueIndices[value].slice(0, countToRemove).forEach((index) => {
+                gameState.value.dice[index].isValidSelection = true
+              })
+            }
+
             // Remove these dice from consideration
             remainingDice = remainingDice.filter((v) => {
               if (v === value && countToRemove > 0) {
@@ -232,10 +269,23 @@ export function useGameStore() {
 
       // Then check for individual 1s and 5s
       remainingDice.forEach((value) => {
-        if (value === 1) {
-          score += 100 // Single 1 = 100 points
-        } else if (value === 5) {
-          score += 50 // Single 5 = 50 points
+        if (value === 1 || value === 5) {
+          if (value === 1) {
+            score += 100 // Single 1 = 100 points
+          } else if (value === 5) {
+            score += 50 // Single 5 = 50 points
+          }
+
+          // Mark individual 1s and 5s as valid selections
+          if (valueIndices[value]) {
+            // Find the first unprocessed die of this value
+            const index = valueIndices[value].find(
+              (i) => !gameState.value.dice[i].isValidSelection
+            )
+            if (index !== undefined) {
+              gameState.value.dice[index].isValidSelection = true
+            }
+          }
         }
       })
     }
@@ -375,7 +425,9 @@ export function useGameStore() {
       !isPlayerTurn.value ||
       gameState.value.dice[index].isLocked ||
       gameState.value.isBust ||
-      gameState.value.diceHidden
+      gameState.value.diceHidden ||
+      (!gameState.value.dice[index].isSelected &&
+        !gameState.value.dice[index].isValidSelection)
     )
       return
 
@@ -433,6 +485,7 @@ export function useGameStore() {
     gameState.value.dice.forEach((die) => {
       die.isLocked = false
       die.isSelected = false
+      die.isValidSelection = false
     })
 
     // Change to next player
@@ -663,6 +716,7 @@ export function useGameStore() {
           value: 1,
           isSelected: false,
           isLocked: false,
+          isValidSelection: false,
         })),
       gamePhase: "QUALIFICATION",
       isGameOver: false,
