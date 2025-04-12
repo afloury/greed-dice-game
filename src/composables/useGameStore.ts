@@ -39,6 +39,7 @@ export function useGameStore() {
     isFirstRoll: true,
     isBust: false,
     bustMessage: "",
+    diceHidden: true, // Initially hide dice until first roll
   })
 
   const currentPlayer = computed(
@@ -71,6 +72,9 @@ export function useGameStore() {
   function rollDice() {
     // Don't allow rolling if it's a bust
     if (gameState.value.isBust) return
+
+    // Show dice when rolling
+    gameState.value.diceHidden = false
 
     // Add potential score to current turn score and reset potential score
     gameState.value.currentTurnScore += gameState.value.potentialScore
@@ -370,7 +374,8 @@ export function useGameStore() {
     if (
       !isPlayerTurn.value ||
       gameState.value.dice[index].isLocked ||
-      gameState.value.isBust
+      gameState.value.isBust ||
+      gameState.value.diceHidden
     )
       return
 
@@ -444,6 +449,9 @@ export function useGameStore() {
       console.log("Computer's turn is starting automatically from the store")
       setTimeout(playComputerTurn, 2000)
     }
+
+    // Set diceHidden to true after a turn ends
+    gameState.value.diceHidden = true
   }
 
   // Function to handle the computer's turn
@@ -518,6 +526,12 @@ export function useGameStore() {
 
   // Function to select the best dice for the computer
   function selectComputerDice() {
+    // Don't select dice if they're hidden
+    if (gameState.value.diceHidden) {
+      console.log("Cannot select dice while hidden")
+      return
+    }
+
     // Get all unlocked dice that aren't selected
     const unlockedDice = gameState.value.dice
       .map((die, index) => ({
@@ -657,6 +671,7 @@ export function useGameStore() {
       isFirstRoll: true,
       isBust: false,
       bustMessage: "",
+      diceHidden: true, // Start with hidden dice
     }
   }
 

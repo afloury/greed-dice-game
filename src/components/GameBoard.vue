@@ -117,11 +117,22 @@
               'w-12 h-12 md:w-16 md:h-16 rounded-lg bg-white shadow-lg flex items-center justify-center text-2xl font-bold cursor-pointer transition-all duration-200',
               die.isSelected ? 'bg-blue-100 ring-2 ring-blue-500' : '',
               die.isLocked ? 'bg-gray-200 cursor-not-allowed' : '',
+              gameState.diceHidden
+                ? 'bg-gray-300 cursor-not-allowed text-gray-500'
+                : '',
             ]"
             @click="toggleDieSelection(index)"
           >
-            {{ die.value }}
+            {{ gameState.diceHidden ? "X" : die.value }}
           </div>
+        </div>
+
+        <!-- Hidden Dice Message -->
+        <div
+          v-if="gameState.diceHidden"
+          class="text-center text-gray-500 text-sm mb-4"
+        >
+          Roll dice to start your turn
         </div>
 
         <!-- Game Controls -->

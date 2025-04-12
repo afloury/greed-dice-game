@@ -24,6 +24,7 @@ export interface GameState {
   isFirstRoll: boolean
   isBust: boolean
   bustMessage: string
+  diceHidden: boolean
 }
 
 export interface ScoringRule {
