@@ -636,8 +636,13 @@ export function useGameStore() {
         return
       }
 
-      // Select any scoring dice
-      selectComputerDice()
+      // Select any scoring dice - with special endgame strategy
+      const isEndgame = currentPlayer.value.totalScore > 9000
+      if (isEndgame) {
+        selectComputerDiceEndgame()
+      } else {
+        selectComputerDice()
+      }
 
       // After selecting dice, decide whether to keep or roll again
       setTimeout(() => {
@@ -653,6 +658,9 @@ export function useGameStore() {
         // Calculate what the total would be after adding turn score
         const potentialTotalScore =
           currentPlayer.value.totalScore + totalAvailable
+
+        // Calculate target score needed to reach exactly 10,000
+        const targetPoints = WINNING_SCORE - currentPlayer.value.totalScore
 
         // Check if computer is qualified
         const isComputerQualified = currentPlayer.value.isQualified
@@ -672,8 +680,99 @@ export function useGameStore() {
             )
             playComputerTurn() // Recursive call for next action
           }
+        } else if (currentPlayer.value.totalScore > 9000) {
+          // ENDGAME STRATEGY (over 9,000 points)
+
+          // Check if we'd reach exactly 10,000 points - immediate win!
+          if (potentialTotalScore === WINNING_SCORE) {
+            console.log(
+              `Computer keeping score: ${totalAvailable} (reaches exactly 10,000 and wins!)`
+            )
+            keepScore()
+            return
+          }
+
+          // Check if we'd exceed 10,000 points - must not keep score
+          if (potentialTotalScore > WINNING_SCORE) {
+            console.log(
+              `Computer cannot keep score: ${potentialTotalScore} would exceed 10,000 points`
+            )
+
+            // If there are no dice selected (safe dice) but we have points banked, keep them
+            if (
+              gameState.value.potentialScore === 0 &&
+              gameState.value.currentTurnScore > 0
+            ) {
+              console.log(
+                `Computer keeping safe score: ${gameState.value.currentTurnScore}`
+              )
+              keepScore()
+              return
+            }
+
+            // If no safe options, roll again
+            console.log(`Computer rolling again to try for a better score`)
+            playComputerTurn()
+            return
+          }
+
+          // We're still under 10,000 - determine whether to roll or keep
+          const unlockedDiceCount = gameState.value.dice.filter(
+            (die) => !die.isLocked && !die.isSelected
+          ).length
+
+          // Calculate remaining points needed
+          const remainingPoints = targetPoints - totalAvailable
+
+          // If very close to target, be conservative
+          if (remainingPoints <= 150) {
+            // Very close to target - decisions based on remaining dice and probability
+            let shouldReroll = false
+
+            // Random probabilities based on dice count (becoming more conservative with fewer dice)
+            const randomFactor = Math.random()
+
+            if (unlockedDiceCount === 1 && randomFactor > 0.75)
+              shouldReroll = true // 25% chance to reroll
+            else if (unlockedDiceCount === 2 && randomFactor > 0.5)
+              shouldReroll = true // 50% chance to reroll
+            else if (unlockedDiceCount === 3 && randomFactor > 0.7)
+              shouldReroll = true // 30% chance to reroll
+            else if (unlockedDiceCount === 4 && randomFactor > 0.9)
+              shouldReroll = true // 10% chance to reroll
+            else if (unlockedDiceCount === 5 && randomFactor > 0.9)
+              shouldReroll = true // 10% chance to reroll
+
+            if (shouldReroll) {
+              console.log(
+                `Computer rolling again (endgame strategy): ${totalAvailable} points so far, needs ${remainingPoints} more for 10,000`
+              )
+              playComputerTurn()
+            } else {
+              console.log(
+                `Computer keeping score (endgame strategy): ${totalAvailable} points, will have ${potentialTotalScore} total`
+              )
+              keepScore()
+            }
+          } else {
+            // Still needs a significant number of points - balance risk vs reward
+            if (
+              totalAvailable >= 300 ||
+              (remainingPoints < 300 && totalAvailable > 0)
+            ) {
+              console.log(
+                `Computer keeping score: ${totalAvailable} points, will have ${potentialTotalScore} total`
+              )
+              keepScore()
+            } else {
+              console.log(
+                `Computer rolling again: needs more points to get closer to 10,000`
+              )
+              playComputerTurn()
+            }
+          }
         } else {
-          // Check if computer would exceed 10,000 points
+          // Regular strategy (not in endgame)
           if (potentialTotalScore > WINNING_SCORE) {
             console.log(
               `Computer rolling again: ${potentialTotalScore} would exceed 10,000 points`
@@ -700,6 +799,245 @@ export function useGameStore() {
         }
       }, 1500)
     }, 1500)
+  }
+
+  // Specialized function for endgame dice selection
+  function selectComputerDiceEndgame() {
+    // Don't select dice if they're hidden
+    if (gameState.value.diceHidden) {
+      console.log("Cannot select dice while hidden")
+      return
+    }
+
+    // Calculate target score needed to reach exactly 10,000
+    const targetPoints =
+      WINNING_SCORE -
+      currentPlayer.value.totalScore -
+      gameState.value.currentTurnScore
+    console.log(`Endgame strategy - Target points needed: ${targetPoints}`)
+
+    // Get all unlocked dice that aren't selected
+    const unlockedDice = gameState.value.dice
+      .map((die, index) => ({
+        index,
+        value: die.value,
+        isLocked: die.isLocked,
+        isSelected: die.isSelected,
+        isValidSelection: die.isValidSelection,
+      }))
+      .filter((die) => !die.isLocked && !die.isSelected)
+
+    // If no unlocked dice, nothing to select
+    if (unlockedDice.length === 0) {
+      console.log("No unlocked dice for computer to select")
+      return
+    }
+
+    // Group dice by values for easier scoring calculation
+    const diceByValue: Record<number, { index: number; value: number }[]> = {}
+    unlockedDice.forEach((die) => {
+      const key = die.value
+      if (!diceByValue[key]) {
+        diceByValue[key] = []
+      }
+      diceByValue[key].push(die)
+    })
+
+    // Helper to calculate score for a specific selection of dice values
+    const calculateScoreForSelection = (selectedValues: number[]): number => {
+      if (selectedValues.length === 0) return 0
+
+      let score = 0
+      let remainingValues = [...selectedValues].sort()
+
+      // Check for straights
+      if (selectedValues.length === 5) {
+        const isStraight1 = [1, 2, 3, 4, 5].every((n) =>
+          selectedValues.includes(n)
+        )
+        const isStraight2 = [2, 3, 4, 5, 6].every((n) =>
+          selectedValues.includes(n)
+        )
+
+        if (isStraight1 || isStraight2) {
+          return 1500 // Straight is worth 1500 points
+        }
+      }
+
+      // Check for sets (3 or more of a kind)
+      const valueCounts: Record<number, number> = {}
+      remainingValues.forEach((v) => {
+        valueCounts[v] = (valueCounts[v] || 0) + 1
+      })
+
+      for (let value = 1; value <= 6; value++) {
+        if (!valueCounts[value]) continue
+
+        const count = valueCounts[value]
+        let countToRemove = 0
+        let points = 0
+
+        if (count >= 5) {
+          points = value === 1 ? 3000 : value * 300
+          countToRemove = 5
+        } else if (count >= 4) {
+          points = value === 1 ? 2000 : value * 200
+          countToRemove = 4
+        } else if (count >= 3) {
+          points = value === 1 ? 1000 : value * 100
+          countToRemove = 3
+        }
+
+        if (countToRemove > 0) {
+          score += points
+
+          // Remove these dice from consideration
+          for (let i = 0; i < countToRemove; i++) {
+            const idx = remainingValues.indexOf(value)
+            if (idx >= 0) {
+              remainingValues.splice(idx, 1)
+            }
+          }
+        }
+      }
+
+      // Then check for individual 1s and 5s
+      remainingValues.forEach((value) => {
+        if (value === 1) score += 100
+        else if (value === 5) score += 50
+      })
+
+      return score
+    }
+
+    // First check for straights if all 5 dice are available
+    if (unlockedDice.length === 5) {
+      const values = unlockedDice.map((die) => die.value).sort()
+      const isStraight1 = [1, 2, 3, 4, 5].every((num) => values.includes(num))
+      const isStraight2 = [2, 3, 4, 5, 6].every((num) => values.includes(num))
+
+      // Only select straight if it doesn't exceed target
+      if ((isStraight1 || isStraight2) && 1500 <= targetPoints) {
+        unlockedDice.forEach((die) => {
+          gameState.value.dice[die.index].isSelected = true
+        })
+        calculatePotentialScore()
+        return
+      }
+    }
+
+    // Endgame strategy: Try all possible combinations and find the one closest to target
+    // without exceeding it
+
+    // Start with single-value selections: 1s and 5s
+    let bestSelectionIndices: number[] = []
+    let bestScore = 0
+
+    // Check individual 1s
+    if (diceByValue[1] && diceByValue[1].length > 0) {
+      for (let i = 1; i <= diceByValue[1].length; i++) {
+        const selectedValues = Array(i).fill(1)
+        const score = calculateScoreForSelection(selectedValues)
+
+        if (score <= targetPoints && score > bestScore) {
+          bestScore = score
+          bestSelectionIndices = diceByValue[1].slice(0, i).map((d) => d.index)
+
+          // If exact match to target, select immediately
+          if (score === targetPoints) {
+            break
+          }
+        }
+      }
+    }
+
+    // Check individual 5s
+    if (diceByValue[5] && diceByValue[5].length > 0) {
+      for (let i = 1; i <= diceByValue[5].length; i++) {
+        const selectedValues = Array(i).fill(5)
+        const score = calculateScoreForSelection(selectedValues)
+
+        if (score <= targetPoints && score > bestScore) {
+          bestScore = score
+          bestSelectionIndices = diceByValue[5].slice(0, i).map((d) => d.index)
+
+          // If exact match to target, select immediately
+          if (score === targetPoints) {
+            break
+          }
+        }
+      }
+    }
+
+    // Check combinations of 1s and 5s
+    if (
+      diceByValue[1] &&
+      diceByValue[1].length > 0 &&
+      diceByValue[5] &&
+      diceByValue[5].length > 0
+    ) {
+      for (let i1 = 1; i1 <= diceByValue[1].length; i1++) {
+        for (let i5 = 1; i5 <= diceByValue[5].length; i5++) {
+          const selectedValues = [...Array(i1).fill(1), ...Array(i5).fill(5)]
+          const score = calculateScoreForSelection(selectedValues)
+
+          if (score <= targetPoints && score > bestScore) {
+            bestScore = score
+            bestSelectionIndices = [
+              ...diceByValue[1].slice(0, i1).map((d) => d.index),
+              ...diceByValue[5].slice(0, i5).map((d) => d.index),
+            ]
+
+            // If exact match to target, select immediately
+            if (score === targetPoints) {
+              break
+            }
+          }
+        }
+      }
+    }
+
+    // Check sets of three (only if individual 1s and 5s didn't give us an exact match)
+    if (bestScore < targetPoints) {
+      for (let value = 1; value <= 6; value++) {
+        if (diceByValue[value] && diceByValue[value].length >= 3) {
+          const score = value === 1 ? 1000 : value * 100
+
+          if (score <= targetPoints && score > bestScore) {
+            bestScore = score
+            bestSelectionIndices = diceByValue[value]
+              .slice(0, 3)
+              .map((d) => d.index)
+
+            // If exact match to target, select immediately
+            if (score === targetPoints) {
+              break
+            }
+          }
+        }
+      }
+    }
+
+    // Apply the best selection we found
+    if (bestSelectionIndices.length > 0) {
+      bestSelectionIndices.forEach((index) => {
+        if (gameState.value.dice[index].isValidSelection) {
+          gameState.value.dice[index].isSelected = true
+        }
+      })
+
+      console.log(
+        `Endgame strategy selected ${bestSelectionIndices.length} dice for ${bestScore} points`
+      )
+      calculatePotentialScore()
+    } else {
+      // If we couldn't find a valid selection that doesn't exceed the target,
+      // fall back to normal selection but be careful
+      console.log(
+        "No optimal endgame selection found, using standard selection"
+      )
+      selectComputerDice()
+    }
   }
 
   // Function to select the best dice for the computer
