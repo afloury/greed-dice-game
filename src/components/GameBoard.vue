@@ -49,27 +49,21 @@
         <div class="text-center mb-4">
           <h2 class="text-xl font-bold">Scoring</h2>
           <div class="grid grid-cols-2 gap-2 text-left max-w-md mx-auto mt-2">
-            <div>
+            <div class="text-green-500">
               <span class="font-medium">Banked Points:</span>
               <span class="ml-2">{{ gameState.currentTurnScore }}</span>
             </div>
-            <div
-              v-if="gameState.lastRollScore > 0 && !gameState.isFirstRoll"
-              class="text-green-500"
-            >
-              <span class="font-medium">Last Roll:</span>
-              <span class="ml-2">{{ gameState.lastRollScore }}</span>
+            <div>
+              <span class="font-medium">Roll score:</span>
+              <span class="ml-2">{{
+                gameState.isFirstRoll ? 0 : gameState.lastRollScore
+              }}</span>
             </div>
-            <div v-if="gameState.potentialScore > 0" class="text-blue-500">
+            <div class="text-blue-500">
               <span class="font-medium">Selected:</span>
               <span class="ml-2">{{ gameState.potentialScore }}</span>
             </div>
-            <div
-              v-if="
-                gameState.potentialScore > 0 || gameState.currentTurnScore > 0
-              "
-              class="text-indigo-600 font-medium"
-            >
+            <div class="text-indigo-600 font-medium">
               <span class="font-medium">Total Available:</span>
               <span class="ml-2">{{
                 gameState.currentTurnScore + gameState.potentialScore
