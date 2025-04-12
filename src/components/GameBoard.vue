@@ -10,7 +10,7 @@
             <span class="font-semibold">{{ gameState.gamePhase }}</span>
           </div>
           <button
-            @click="resetGame"
+            @click="handleResetGame"
             class="px-4 py-2 rounded-lg font-semibold bg-gray-500 text-white hover:bg-gray-600 transition-all duration-200"
           >
             New Game
@@ -41,7 +41,7 @@
       </div>
 
       <!-- Computer AI Status -->
-      <ComputerAI />
+      <ComputerAI ref="computerAIRef" />
 
       <!-- Game Board -->
       <div class="bg-white rounded-lg shadow-lg p-4 mb-4">
@@ -187,6 +187,16 @@
 <script setup lang="ts">
 import { useGameStore } from "../composables/useGameStore"
 import ComputerAI from "./ComputerAI.vue"
+import { ref, watch } from "vue"
+
+// Define the interface for the exposed methods from ComputerAI
+interface ComputerAIExpose {
+  computerActions: {
+    makeDecision: () => void
+  }
+}
+
+const computerAIRef = ref<ComputerAIExpose | null>(null)
 
 const {
   gameState,
@@ -201,4 +211,25 @@ const {
 } = useGameStore()
 
 const MIN_QUALIFYING_SCORE = 1000
+
+// Watch for end turn transitions to make sure computer's turn is triggered
+watch(
+  () => gameState.value.currentPlayer,
+  (newPlayerIndex) => {
+    // The endTurn function in the store now handles starting the computer's turn automatically
+    // This watcher is just for logging purposes now
+    const player = gameState.value.players[newPlayerIndex]
+    console.log(`GameBoard detected player change to: ${player.name}`, {
+      currentPlayerIdx: newPlayerIndex,
+      isComputer: player.isComputer,
+      isGameOver: gameState.value.isGameOver,
+    })
+  }
+)
+
+// Also ensure computer plays after a game reset
+function handleResetGame() {
+  resetGame()
+  console.log("Game reset, computer will start automatically if it's first")
+}
 </script>

@@ -239,8 +239,15 @@ export function useGameStore() {
       die.isSelected = false
     })
 
+    // Calculate next player to help with UI updates
+    const nextPlayerIndex =
+      (gameState.value.currentPlayer + 1) % gameState.value.players.length
+    const nextPlayer = gameState.value.players[nextPlayerIndex]
+    console.log(`Current player busted. Next player will be ${nextPlayer.name}`)
+
     // Automatically transition to next player after a delay
     setTimeout(() => {
+      console.log("Ending turn after bust timeout")
       gameState.value.currentTurnScore = 0
       endTurn()
     }, 2000)
@@ -355,18 +362,143 @@ export function useGameStore() {
   }
 
   function endTurn() {
+    console.log("Ending turn for player:", currentPlayer.value.name)
+
+    // Reset all turn-related state
     gameState.value.currentTurnScore = 0
     gameState.value.lastRollScore = 0
     gameState.value.potentialScore = 0
     gameState.value.isFirstRoll = true
     gameState.value.isBust = false
     gameState.value.bustMessage = ""
+
+    // Reset all dice
     gameState.value.dice.forEach((die) => {
       die.isLocked = false
       die.isSelected = false
     })
+
+    // Change to next player
+    const oldPlayerIndex = gameState.value.currentPlayer
     gameState.value.currentPlayer =
       (gameState.value.currentPlayer + 1) % gameState.value.players.length
+
+    console.log(
+      `Turn changed from ${gameState.value.players[oldPlayerIndex].name} to ${currentPlayer.value.name}`
+    )
+
+    // If the new player is the computer, start its turn after a delay
+    if (currentPlayer.value.isComputer && !gameState.value.isGameOver) {
+      console.log("Computer's turn is starting automatically from the store")
+      setTimeout(playComputerTurn, 2000)
+    }
+  }
+
+  // Function to handle the computer's turn
+  function playComputerTurn() {
+    // Safety check - make sure it's still computer's turn
+    if (!currentPlayer.value.isComputer || gameState.value.isGameOver) {
+      console.log(
+        "Computer turn canceled in store - no longer computer's turn or game over"
+      )
+      return
+    }
+
+    console.log("Computer is rolling dice...")
+
+    // Simple strategy: Just roll the dice
+    rollDice()
+
+    // After dice are rolled, schedule next computer action
+    setTimeout(() => {
+      if (!currentPlayer.value.isComputer || gameState.value.isGameOver) {
+        console.log("Computer turn ended during delay")
+        return
+      }
+
+      // Select any scoring dice
+      selectComputerDice()
+
+      // After selecting dice, decide whether to keep or roll again
+      setTimeout(() => {
+        if (!currentPlayer.value.isComputer || gameState.value.isGameOver) {
+          console.log("Computer turn ended during selection delay")
+          return
+        }
+
+        // Simple strategy: If score is above threshold, keep it
+        const totalAvailable =
+          gameState.value.currentTurnScore + gameState.value.potentialScore
+
+        if (totalAvailable >= 300) {
+          console.log("Computer keeping score:", totalAvailable)
+          keepScore()
+        } else {
+          console.log("Computer rolling again for more points")
+          playComputerTurn() // Recursive call for next action
+        }
+      }, 1500)
+    }, 1500)
+  }
+
+  // Function to select the best dice for the computer
+  function selectComputerDice() {
+    // Get all unlocked dice that aren't selected
+    const unlockedDice = gameState.value.dice
+      .map((die, index) => ({
+        index,
+        value: die.value,
+        isLocked: die.isLocked,
+        isSelected: die.isSelected,
+      }))
+      .filter((die) => !die.isLocked && !die.isSelected)
+
+    // If no unlocked dice, nothing to select
+    if (unlockedDice.length === 0) {
+      console.log("No unlocked dice for computer to select")
+      return
+    }
+
+    // Group dice by values
+    const diceByValue: Record<number, { index: number; value: number }[]> = {}
+    unlockedDice.forEach((die) => {
+      const key = die.value
+      if (!diceByValue[key]) {
+        diceByValue[key] = []
+      }
+      diceByValue[key].push(die)
+    })
+
+    // First select any triplets
+    let selectionMade = false
+    for (let value = 1; value <= 6; value++) {
+      if (diceByValue[value] && diceByValue[value].length >= 3) {
+        diceByValue[value].slice(0, 3).forEach((die) => {
+          gameState.value.dice[die.index].isSelected = true
+          selectionMade = true
+        })
+      }
+    }
+
+    // Then select any 1s and 5s
+    if (diceByValue[1]) {
+      diceByValue[1].forEach((die) => {
+        gameState.value.dice[die.index].isSelected = true
+        selectionMade = true
+      })
+    }
+
+    if (diceByValue[5]) {
+      diceByValue[5].forEach((die) => {
+        gameState.value.dice[die.index].isSelected = true
+        selectionMade = true
+      })
+    }
+
+    // If a selection was made, calculate the potential score
+    if (selectionMade) {
+      calculatePotentialScore()
+    }
   }
 
   function resetGame() {
@@ -416,5 +548,6 @@ export function useGameStore() {
     toggleDieSelection,
     keepScore,
     resetGame,
+    playComputerTurn,
   }
 }
