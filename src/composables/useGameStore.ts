@@ -143,9 +143,28 @@ export function useGameStore() {
     return "Roll the dice"
   })
 
+  // Callback for dice rolling animation
+  let onRollCallback: ((rollingDiceIndices: number[]) => void) | null = null
+
+  // Set callback function
+  const setRollCallback = (
+    callback: (rollingDiceIndices: number[]) => void
+  ) => {
+    onRollCallback = callback
+  }
+
   function rollDice() {
     // Don't allow rolling if it's a bust
     if (gameState.value.isBust) return
+
+    // Notify about dice to be rolled
+    if (onRollCallback) {
+      const rollingDiceIndices = gameState.value.dice
+        .map((die, index) => (!die.isLocked ? index : -1))
+        .filter((index) => index !== -1)
+
+      onRollCallback(rollingDiceIndices)
+    }
 
     // Show dice when rolling
     gameState.value.diceHidden = false
@@ -818,5 +837,6 @@ export function useGameStore() {
     rollButtonTooltip,
     isEnglish,
     toggleLanguage,
+    setRollCallback,
   }
 }

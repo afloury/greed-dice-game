@@ -21,6 +21,17 @@
           </div>
           <div class="flex gap-2">
             <button
+              @click="toggleSettings"
+              class="p-2 rounded-lg font-semibold transition-all duration-200"
+              :class="[
+                isDarkMode
+                  ? 'bg-gray-600 text-white hover:bg-gray-500'
+                  : 'bg-gray-500 text-white hover:bg-gray-600',
+              ]"
+            >
+              ⚙️
+            </button>
+            <button
               @click="toggleDarkMode"
               class="p-2 rounded-lg font-semibold transition-all duration-200"
               :class="[
@@ -56,6 +67,61 @@
           </div>
         </div>
       </div>
+
+      <!-- Settings Modal -->
+      <Teleport to="body">
+        <div
+          v-if="showSettings"
+          class="settings-modal-overlay"
+          @click="closeSettings"
+        >
+          <div
+            class="settings-modal"
+            :class="{ 'dark-mode': isDarkMode }"
+            @click.stop
+          >
+            <div class="settings-modal-header">
+              <h2>{{ isEnglish ? "Settings" : "Paramètres" }}</h2>
+              <button @click="closeSettings">×</button>
+            </div>
+            <div class="settings-modal-body">
+              <div class="settings-section">
+                <label class="block mb-2">
+                  {{
+                    isEnglish
+                      ? "Sound Effects Volume:"
+                      : "Volume des Effets Sonores:"
+                  }}
+                </label>
+                <div class="flex items-center gap-3">
+                  <span>🔈</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    v-model="soundVolume"
+                    class="volume-slider"
+                    @input="updateSoundVolume"
+                  />
+                  <span>🔊</span>
+                </div>
+                <div class="volume-value">{{ soundVolume }}%</div>
+
+                <div class="text-center mt-3">
+                  <button @click="testSound" class="test-sound-btn">
+                    {{ isEnglish ? "Test Sound" : "Tester le Son" }}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="settings-modal-footer">
+              <button @click="closeSettings" class="close-btn">
+                {{ isEnglish ? "Close" : "Fermer" }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
 
       <!-- Player Scores -->
       <div class="grid grid-cols-2 gap-4 mb-4">
@@ -131,7 +197,7 @@
           </div>
         </div>
 
-        <!-- Dice Area -->
+        <!-- Dice Area with animation -->
         <div class="flex justify-center gap-4 mb-4">
           <div
             v-for="(die, index) in gameState.dice"
@@ -203,7 +269,11 @@
                 </svg>
               </div>
             </template>
-            <DiceFace v-else :value="die.value" />
+            <DiceFace
+              v-else
+              :value="die.value"
+              :is-spinning="spinningDice[index]"
+            />
           </div>
         </div>
 
@@ -468,7 +538,7 @@
 import { useGameStore } from "../composables/useGameStore"
 import ComputerAI from "./ComputerAI.vue"
 import DiceFace from "./DiceFace.vue"
-import { ref, watch, computed } from "vue"
+import { ref, watch, computed, onMounted } from "vue"
 
 // Define the interface for the exposed methods from ComputerAI
 interface ComputerAIExpose {
@@ -478,6 +548,64 @@ interface ComputerAIExpose {
 }
 
 const computerAIRef = ref<ComputerAIExpose | null>(null)
+
+// Track which dice are currently spinning
+const spinningDice = ref<boolean[]>([false, false, false, false, false])
+
+// Audio for dice rolling
+let diceSound: HTMLAudioElement | null = null
+
+// Sound settings
+const soundVolume = ref(50) // Default volume 50%
+const showSettings = ref(false)
+
+// Toggle and close settings modal
+const toggleSettings = () => {
+  showSettings.value = !showSettings.value
+  // If opening the modal, add a class to the body to prevent scrolling
+  if (showSettings.value) {
+    document.body.classList.add("modal-open")
+  } else {
+    document.body.classList.remove("modal-open")
+  }
+}
+
+const closeSettings = () => {
+  showSettings.value = false
+  document.body.classList.remove("modal-open")
+}
+
+// Update sound volume function
+const updateSoundVolume = () => {
+  // Update volume on the sound object if it exists
+  if (diceSound) {
+    diceSound.volume = soundVolume.value / 100
+  }
+}
+
+// Function to play dice sound
+const playDiceSound = () => {
+  try {
+    if (!diceSound) {
+      // Try multiple possible locations for the sound file
+      diceSound = new Audio("/dice-roll.mp3")
+
+      // Fallback to not playing sound if there's an issue
+      diceSound.addEventListener("error", () => {
+        console.log("Dice sound file not found or not supported")
+        diceSound = null
+      })
+    }
+
+    if (diceSound) {
+      diceSound.volume = soundVolume.value / 100
+      diceSound.currentTime = 0
+      diceSound.play().catch((err) => console.log("Audio play error:", err))
+    }
+  } catch (error) {
+    console.log("Error playing dice sound:", error)
+  }
+}
 
 const {
   gameState,
@@ -494,6 +622,7 @@ const {
   rollButtonTooltip,
   isEnglish,
   toggleLanguage,
+  setRollCallback,
 } = useGameStore()
 
 const MIN_QUALIFYING_SCORE = 1000
@@ -586,6 +715,30 @@ const rollDiceButtonTooltip = computed(() => {
   }
 })
 
+// Set up the roll animation callback
+onMounted(() => {
+  setRollCallback((rollingDiceIndices) => {
+    // Only play sound and animate if there are dice to roll
+    if (rollingDiceIndices.length > 0) {
+      // Play dice rolling sound
+      playDiceSound()
+
+      // Reset all dice to not spinning
+      spinningDice.value = [false, false, false, false, false]
+
+      // Set spinning for dice that will be rolled
+      rollingDiceIndices.forEach((index) => {
+        spinningDice.value[index] = true
+      })
+
+      // Stop spinning after animation completes
+      setTimeout(() => {
+        spinningDice.value = [false, false, false, false, false]
+      }, 800) // Match animation duration
+    }
+  })
+})
+
 // Watch for end turn transitions to make sure computer's turn is triggered
 watch(
   () => gameState.value.currentPlayer,
@@ -606,4 +759,164 @@ function handleResetGame() {
   resetGame()
   console.log("Game reset, computer will start automatically if it's first")
 }
+
+// Function to test sound
+const testSound = () => {
+  playDiceSound()
+}
 </script>
+
+<style scoped>
+/* Add this to your style section */
+.settings-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.settings-modal {
+  width: 90%;
+  max-width: 450px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.settings-modal.dark-mode {
+  background-color: #1f2937;
+  color: white;
+}
+
+.settings-modal-header {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dark-mode .settings-modal-header {
+  border-bottom-color: #374151;
+}
+
+.settings-modal-header h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.settings-modal-header button {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0 0.5rem;
+  line-height: 1;
+}
+
+.settings-modal-body {
+  padding: 1.5rem;
+}
+
+.settings-section {
+  margin-bottom: 1.5rem;
+}
+
+.volume-slider {
+  width: 100%;
+  height: 8px;
+  background-color: #e5e7eb;
+  border-radius: 4px;
+  appearance: none;
+  cursor: pointer;
+}
+
+.dark-mode .volume-slider {
+  background-color: #4b5563;
+}
+
+.volume-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background-color: #3b82f6;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.volume-value {
+  text-align: center;
+  margin-top: 0.5rem;
+  font-weight: 500;
+}
+
+.test-sound-btn {
+  padding: 0.5rem 1rem;
+  background-color: #4b5563;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.test-sound-btn:hover {
+  background-color: #374151;
+}
+
+.dark-mode .test-sound-btn {
+  background-color: #6b7280;
+}
+
+.dark-mode .test-sound-btn:hover {
+  background-color: #4b5563;
+}
+
+.settings-modal-footer {
+  padding: 1rem;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dark-mode .settings-modal-footer {
+  border-top-color: #374151;
+}
+
+.close-btn {
+  padding: 0.5rem 1rem;
+  background-color: #4b5563;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.close-btn:hover {
+  background-color: #374151;
+}
+
+.dark-mode .close-btn {
+  background-color: #6b7280;
+}
+
+.dark-mode .close-btn:hover {
+  background-color: #4b5563;
+}
+
+/* Add this to body when modal is open to prevent scrolling */
+:global(.modal-open) {
+  overflow: hidden;
+}
+</style>
