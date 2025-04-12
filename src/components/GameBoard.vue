@@ -519,6 +519,28 @@
             </ul>
           </div>
         </div>
+
+        <!-- Exact 10,000 Rule -->
+        <div
+          class="mt-4 p-3 rounded relative"
+          :class="{
+            'bg-yellow-100 border border-yellow-400 text-yellow-700':
+              !isDarkMode,
+            'bg-yellow-900 border border-yellow-700 text-yellow-200':
+              isDarkMode,
+          }"
+        >
+          <span class="block sm:inline font-semibold">
+            {{ isEnglish ? "Exact 10,000 Rule:" : "Règle des 10,000 Exacts:" }}
+          </span>
+          <p class="text-sm">
+            {{
+              isEnglish
+                ? "You must score exactly 10,000 points to win. If you exceed 10,000 points, you bust and lose all points accumulated in that turn."
+                : "Vous devez marquer exactement 10,000 points pour gagner. Si vous dépassez 10,000 points, vous échouez et perdez tous les points accumulés durant ce tour."
+            }}
+          </p>
+        </div>
       </div>
 
       <!-- Game Status -->
@@ -532,15 +554,15 @@
         </h2>
         <p class="text-lg">
           {{
-            gameState.players.find((p) => p.totalScore >= 10000)?.name ||
+            gameState.players.find((p) => p.totalScore === 10000)?.name ||
             currentPlayer.name
           }}
-          {{ isEnglish ? "wins with" : "gagne avec" }}
           {{
-            gameState.players.find((p) => p.totalScore >= 10000)?.totalScore ||
-            currentPlayer.totalScore
+            isEnglish
+              ? "wins by reaching exactly"
+              : "gagne en atteignant exactement"
           }}
-          {{ isEnglish ? "points!" : "points!" }}
+          {{ isEnglish ? "10,000 points!" : "10,000 points!" }}
         </p>
       </div>
     </div>

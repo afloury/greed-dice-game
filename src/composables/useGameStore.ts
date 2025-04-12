@@ -546,6 +546,20 @@ export function useGameStore() {
       return
     }
 
+    // Calculate what the total would be after adding turn score
+    const potentialTotalScore = player.totalScore + turnTotal
+
+    // Check if player would exceed 10,000 points
+    if (potentialTotalScore > WINNING_SCORE) {
+      // Bust rule for exceeding 10,000 - lose all turn points
+      gameState.value.isBust = true
+      gameState.value.bustMessage = "BUST! Exceeded 10,000 points"
+
+      // No score is added, turn ends
+      endTurn()
+      return
+    }
+
     // Add both current turn score and potential score
     player.totalScore += turnTotal
 
@@ -554,7 +568,8 @@ export function useGameStore() {
       gameState.value.gamePhase = "NORMAL"
     }
 
-    if (player.totalScore >= WINNING_SCORE) {
+    // Player wins only if they reach exactly 10,000 points
+    if (player.totalScore === WINNING_SCORE) {
       gameState.value.isGameOver = true
       gameState.value.gamePhase = "END_GAME"
     }
@@ -635,6 +650,10 @@ export function useGameStore() {
         const totalAvailable =
           gameState.value.currentTurnScore + gameState.value.potentialScore
 
+        // Calculate what the total would be after adding turn score
+        const potentialTotalScore =
+          currentPlayer.value.totalScore + totalAvailable
+
         // Check if computer is qualified
         const isComputerQualified = currentPlayer.value.isQualified
 
@@ -654,8 +673,22 @@ export function useGameStore() {
             playComputerTurn() // Recursive call for next action
           }
         } else {
-          // Already qualified, use normal strategy
-          if (totalAvailable >= 300) {
+          // Check if computer would exceed 10,000 points
+          if (potentialTotalScore > WINNING_SCORE) {
+            console.log(
+              `Computer rolling again: ${potentialTotalScore} would exceed 10,000 points`
+            )
+            playComputerTurn() // Roll again and try for a better combination
+          }
+          // Check if computer would reach exactly 10,000 points
+          else if (potentialTotalScore === WINNING_SCORE) {
+            console.log(
+              `Computer keeping score: ${totalAvailable} (will reach exactly 10,000 and win)`
+            )
+            keepScore()
+          }
+          // Normal strategy when not close to 10,000
+          else if (totalAvailable >= 300) {
             console.log(
               `Computer keeping score: ${totalAvailable} (already qualified)`
             )
