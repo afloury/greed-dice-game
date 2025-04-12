@@ -9,11 +9,15 @@
         class="rounded-lg shadow-lg p-4 mb-4"
         :class="{ 'bg-white': !isDarkMode, 'bg-gray-800': isDarkMode }"
       >
-        <h1 class="text-3xl font-bold text-center mb-4">10,000 Dice Game</h1>
+        <h1 class="text-3xl font-bold text-center mb-4">
+          {{ isEnglish ? "10,000 Dice Game" : "Jeu de Dés 10,000" }}
+        </h1>
         <div class="flex justify-between items-center">
           <div class="text-lg">
-            Current Phase:
-            <span class="font-semibold">{{ gameState.gamePhase }}</span>
+            {{ isEnglish ? "Current Phase:" : "Phase Actuelle:" }}
+            <span class="font-semibold">{{
+              translateGamePhase(gameState.gamePhase)
+            }}</span>
           </div>
           <div class="flex gap-2">
             <button
@@ -28,6 +32,17 @@
               {{ isDarkMode ? "☀️" : "🌙" }}
             </button>
             <button
+              @click="toggleLanguage"
+              class="p-2 rounded-lg font-semibold transition-all duration-200"
+              :class="[
+                isDarkMode
+                  ? 'bg-gray-600 text-white hover:bg-gray-500'
+                  : 'bg-gray-500 text-white hover:bg-gray-600',
+              ]"
+            >
+              {{ isEnglish ? "🇫🇷" : "🇬🇧" }}
+            </button>
+            <button
               @click="handleResetGame"
               class="px-4 py-2 rounded-lg font-semibold transition-all duration-200"
               :class="[
@@ -36,7 +51,7 @@
                   : 'bg-gray-500 text-white hover:bg-gray-600',
               ]"
             >
-              New Game
+              {{ isEnglish ? "New Game" : "Nouvelle Partie" }}
             </button>
           </div>
         </div>
@@ -55,13 +70,19 @@
         >
           <h2 class="text-xl font-bold mb-2">{{ player.name }}</h2>
           <div class="text-lg">
-            Total Score:
+            {{ isEnglish ? "Total Score:" : "Score Total:" }}
             <span class="font-semibold">{{ player.totalScore }}</span>
           </div>
           <div v-if="!player.isQualified" class="text-sm text-red-500">
-            Needs {{ MIN_QUALIFYING_SCORE }} points to qualify
+            {{
+              isEnglish
+                ? `Needs ${MIN_QUALIFYING_SCORE} points to qualify`
+                : `Besoin de ${MIN_QUALIFYING_SCORE} points pour se qualifier`
+            }}
           </div>
-          <div v-else class="text-sm text-green-500">Qualified</div>
+          <div v-else class="text-sm text-green-500">
+            {{ isEnglish ? "Qualified" : "Qualifié" }}
+          </div>
         </div>
       </div>
 
@@ -75,24 +96,34 @@
       >
         <!-- Scoring -->
         <div class="text-center mb-4">
-          <h2 class="text-xl font-bold">Scoring</h2>
+          <h2 class="text-xl font-bold">
+            {{ isEnglish ? "Scoring" : "Points" }}
+          </h2>
           <div class="grid grid-cols-2 gap-2 text-left max-w-md mx-auto mt-2">
             <div class="text-green-500">
-              <span class="font-medium">Banked Points:</span>
+              <span class="font-medium">{{
+                isEnglish ? "Banked Points:" : "Points en Banque:"
+              }}</span>
               <span class="ml-2">{{ gameState.currentTurnScore }}</span>
             </div>
             <div>
-              <span class="font-medium">Roll score:</span>
+              <span class="font-medium">{{
+                isEnglish ? "Roll score:" : "Score du Lancer:"
+              }}</span>
               <span class="ml-2">{{
                 gameState.isFirstRoll ? 0 : gameState.lastRollScore
               }}</span>
             </div>
             <div class="text-blue-500">
-              <span class="font-medium">Selected:</span>
+              <span class="font-medium">{{
+                isEnglish ? "Selected:" : "Sélectionné:"
+              }}</span>
               <span class="ml-2">{{ gameState.potentialScore }}</span>
             </div>
             <div class="text-indigo-600 font-medium">
-              <span class="font-medium">Total Available:</span>
+              <span class="font-medium">{{
+                isEnglish ? "Total Available:" : "Total Disponible:"
+              }}</span>
               <span class="ml-2">{{
                 gameState.currentTurnScore + gameState.potentialScore
               }}</span>
@@ -158,7 +189,11 @@
           v-if="gameState.diceHidden"
           class="text-center text-gray-500 text-sm mb-4"
         >
-          Roll dice to start your turn
+          {{
+            isEnglish
+              ? "Roll dice to start your turn"
+              : "Lancez les dés pour commencer votre tour"
+          }}
         </div>
 
         <!-- Game Controls -->
@@ -174,7 +209,7 @@
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed',
             ]"
           >
-            Roll Dice
+            {{ isEnglish ? "Roll Dice" : "Lancer les Dés" }}
           </button>
           <button
             @click="keepScore"
@@ -187,9 +222,12 @@
             ]"
             :title="keepScoreButtonTooltip"
           >
-            Keep Score{{
+            {{ isEnglish ? "Keep Score" : "Garder les Points"
+            }}{{
               !currentPlayer.isQualified
-                ? ` (Need ${MIN_QUALIFYING_SCORE})`
+                ? isEnglish
+                  ? ` (Need ${MIN_QUALIFYING_SCORE})`
+                  : ` (Besoin de ${MIN_QUALIFYING_SCORE})`
                 : ""
             }}
           </button>
@@ -212,7 +250,11 @@
                   : 'bg-white border-gray-300',
               ]"
             ></div>
-            <span>Selectable (scores points)</span>
+            <span>{{
+              isEnglish
+                ? "Selectable (scores points)"
+                : "Sélectionnable (donne des points)"
+            }}</span>
           </div>
           <div class="flex items-center">
             <div
@@ -223,7 +265,7 @@
                   : 'bg-blue-100 ring-blue-500',
               ]"
             ></div>
-            <span>Selected</span>
+            <span>{{ isEnglish ? "Selected" : "Sélectionné" }}</span>
           </div>
           <div class="flex items-center">
             <div
@@ -234,7 +276,11 @@
                   : 'bg-green-100 border-green-500',
               ]"
             ></div>
-            <span>Locked (banked points)</span>
+            <span>{{
+              isEnglish
+                ? "Locked (banked points)"
+                : "Verrouillé (points en banque)"
+            }}</span>
           </div>
           <div class="flex items-center">
             <div
@@ -243,7 +289,9 @@
                 isDarkMode ? 'bg-gray-800 text-gray-400' : 'bg-gray-100',
               ]"
             ></div>
-            <span>Not scorable</span>
+            <span>{{
+              isEnglish ? "Not scorable" : "Non comptabilisable"
+            }}</span>
           </div>
         </div>
 
@@ -258,9 +306,15 @@
             }"
           >
             <span class="block sm:inline text-lg font-bold">{{
-              gameState.bustMessage
+              translateBustMessage(gameState.bustMessage)
             }}</span>
-            <p class="text-sm">Transitioning to next player...</p>
+            <p class="text-sm">
+              {{
+                isEnglish
+                  ? "Transitioning to next player..."
+                  : "Passage au joueur suivant..."
+              }}
+            </p>
           </div>
         </div>
 
@@ -277,11 +331,16 @@
             }"
           >
             <span class="block sm:inline text-lg font-bold">
-              Qualification Required!
+              {{
+                isEnglish ? "Qualification Required!" : "Qualification Requise!"
+              }}
             </span>
             <p class="text-sm">
-              You need at least {{ MIN_QUALIFYING_SCORE }} points in one turn to
-              qualify. Current turn total:
+              {{
+                isEnglish
+                  ? `You need at least ${MIN_QUALIFYING_SCORE} points in one turn to qualify. Current turn total:`
+                  : `Vous avez besoin d'au moins ${MIN_QUALIFYING_SCORE} points en un tour pour vous qualifier. Total du tour actuel:`
+              }}
               {{ gameState.currentTurnScore + gameState.potentialScore }}
             </p>
           </div>
@@ -293,23 +352,63 @@
         class="rounded-lg shadow-lg p-4 mb-4"
         :class="{ 'bg-white': !isDarkMode, 'bg-gray-800': isDarkMode }"
       >
-        <h2 class="text-xl font-bold mb-2 text-center">Scoring Rules</h2>
+        <h2 class="text-xl font-bold mb-2 text-center">
+          {{ isEnglish ? "Scoring Rules" : "Règles de Scoring" }}
+        </h2>
         <div class="grid grid-cols-2 gap-2">
           <div>
             <ul class="list-disc pl-5">
-              <li>Single 1: 100 points</li>
-              <li>Single 5: 50 points</li>
-              <li>Three 1s: 1,000 points</li>
-              <li>Three of a kind: number × 100</li>
+              <li>
+                {{
+                  isEnglish ? "Single 1: 100 points" : "Un seul 1: 100 points"
+                }}
+              </li>
+              <li>
+                {{ isEnglish ? "Single 5: 50 points" : "Un seul 5: 50 points" }}
+              </li>
+              <li>
+                {{
+                  isEnglish ? "Three 1s: 1,000 points" : "Trois 1: 1,000 points"
+                }}
+              </li>
+              <li>
+                {{
+                  isEnglish
+                    ? "Three of a kind: number × 100"
+                    : "Brelan: chiffre × 100"
+                }}
+              </li>
             </ul>
           </div>
           <div>
             <ul class="list-disc pl-5">
-              <li>Four of a kind: 2× three of a kind</li>
-              <li>Five of a kind: 3× three of a kind</li>
-              <li>Straight (1-5 or 2-6): 1,500 points</li>
+              <li>
+                {{
+                  isEnglish
+                    ? "Four of a kind: 2× three of a kind"
+                    : "Carré: 2× brelan"
+                }}
+              </li>
+              <li>
+                {{
+                  isEnglish
+                    ? "Five of a kind: 3× three of a kind"
+                    : "Cinq identiques: 3× brelan"
+                }}
+              </li>
+              <li>
+                {{
+                  isEnglish
+                    ? "Straight (1-5 or 2-6): 1,500 points"
+                    : "Suite (1-5 ou 2-6): 1,500 points"
+                }}
+              </li>
               <li class="text-red-600 font-semibold">
-                No scoring dice: Bust (lose all turn points!)
+                {{
+                  isEnglish
+                    ? "No scoring dice: Bust (lose all turn points!)"
+                    : "Aucun dé comptabilisable: Échec (perte de tous les points du tour!)"
+                }}
               </li>
             </ul>
           </div>
@@ -322,18 +421,20 @@
         class="rounded-lg shadow-lg p-4 text-center"
         :class="{ 'bg-white': !isDarkMode, 'bg-gray-800': isDarkMode }"
       >
-        <h2 class="text-2xl font-bold text-green-500 mb-2">Game Over!</h2>
+        <h2 class="text-2xl font-bold text-green-500 mb-2">
+          {{ isEnglish ? "Game Over!" : "Partie Terminée!" }}
+        </h2>
         <p class="text-lg">
           {{
             gameState.players.find((p) => p.totalScore >= 10000)?.name ||
             currentPlayer.name
           }}
-          wins with
+          {{ isEnglish ? "wins with" : "gagne avec" }}
           {{
             gameState.players.find((p) => p.totalScore >= 10000)?.totalScore ||
             currentPlayer.totalScore
           }}
-          points!
+          {{ isEnglish ? "points!" : "points!" }}
         </p>
       </div>
     </div>
@@ -367,9 +468,39 @@ const {
   isDarkMode,
   toggleDarkMode,
   rollButtonTooltip,
+  isEnglish,
+  toggleLanguage,
 } = useGameStore()
 
 const MIN_QUALIFYING_SCORE = 1000
+
+// Translate game phases
+const translateGamePhase = (phase: string) => {
+  if (isEnglish.value) return phase
+
+  const translations: Record<string, string> = {
+    QUALIFICATION: "QUALIFICATION",
+    NORMAL: "NORMAL",
+    END_GAME: "FIN DE PARTIE",
+    Rolling: "Lancer",
+    Selecting: "Sélection",
+    "End Turn": "Fin du Tour",
+    "Game Over": "Partie Terminée",
+  }
+
+  return translations[phase] || phase
+}
+
+// Translate bust messages
+const translateBustMessage = (message: string) => {
+  if (isEnglish.value) return message
+
+  if (message.includes("BUST")) {
+    return "ÉCHEC! Aucun dé comptabilisable"
+  }
+
+  return message
+}
 
 // Computed property to determine if qualification warning should be shown
 const showQualificationWarning = computed(() => {
@@ -391,27 +522,44 @@ const keepScoreButtonTooltip = computed(() => {
     gameState.value.currentTurnScore + gameState.value.potentialScore
 
   if (!currentPlayer.value.isQualified && turnTotal < MIN_QUALIFYING_SCORE) {
-    return `You need at least ${MIN_QUALIFYING_SCORE} points in one turn to qualify. Current: ${turnTotal}`
+    return isEnglish.value
+      ? `You need at least ${MIN_QUALIFYING_SCORE} points in one turn to qualify. Current: ${turnTotal}`
+      : `Vous avez besoin d'au moins ${MIN_QUALIFYING_SCORE} points en un tour pour vous qualifier. Actuel: ${turnTotal}`
   }
 
   if (!canKeepScore.value) {
-    return "No points to keep"
+    return isEnglish.value ? "No points to keep" : "Aucun point à garder"
   }
 
   if (!isPlayerTurn.value) {
-    return "Not your turn"
+    return isEnglish.value ? "Not your turn" : "Ce n'est pas votre tour"
   }
 
-  return "Bank your points and end your turn"
+  return isEnglish.value
+    ? "Bank your points and end your turn"
+    : "Mettez vos points en banque et terminez votre tour"
 })
 
 // Tooltip for the Roll Dice button
 const rollDiceButtonTooltip = computed(() => {
   if (!isPlayerTurn.value) {
-    return "It's not your turn to roll"
+    return isEnglish.value
+      ? "It's not your turn to roll"
+      : "Ce n'est pas votre tour de lancer"
   }
 
-  return rollButtonTooltip.value
+  if (isEnglish.value) {
+    return rollButtonTooltip.value
+  } else {
+    // Translate the roll button tooltip
+    if (rollButtonTooltip.value.includes("No dice selected")) {
+      return "Aucun dé sélectionné pour le nouveau lancer"
+    } else if (rollButtonTooltip.value.includes("Roll the dice")) {
+      return "Lancez les dés pour commencer votre tour"
+    } else {
+      return rollButtonTooltip.value
+    }
+  }
 })
 
 // Watch for end turn transitions to make sure computer's turn is triggered

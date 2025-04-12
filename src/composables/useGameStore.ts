@@ -18,6 +18,23 @@ export function useGameStore() {
     document.documentElement.classList.toggle("dark", isDarkMode.value)
   }
 
+  // Language state
+  const isEnglish = ref(true)
+
+  // Toggle language
+  const toggleLanguage = () => {
+    isEnglish.value = !isEnglish.value
+    updatePlayerNames() // Update player names when language changes
+  }
+
+  // Update player names based on language
+  const updatePlayerNames = () => {
+    gameState.value.players[0].name = isEnglish.value ? "Player" : "Joueur"
+    gameState.value.players[1].name = isEnglish.value
+      ? "Computer"
+      : "Ordinateur"
+  }
+
   // Initialize dark mode based on system preference
   if (isDarkMode.value) {
     document.documentElement.classList.add("dark")
@@ -751,14 +768,14 @@ export function useGameStore() {
       players: [
         {
           id: 0,
-          name: "Player",
+          name: isEnglish.value ? "Player" : "Joueur",
           totalScore: 0,
           isQualified: false,
           isComputer: false,
         },
         {
           id: 1,
-          name: "Computer",
+          name: isEnglish.value ? "Computer" : "Ordinateur",
           totalScore: 0,
           isQualified: false,
           isComputer: true,
@@ -799,5 +816,7 @@ export function useGameStore() {
     isDarkMode,
     toggleDarkMode,
     rollButtonTooltip,
+    isEnglish,
+    toggleLanguage,
   }
 }
