@@ -64,11 +64,27 @@ export function useGameStore() {
     () => gameState.value.players[gameState.value.currentPlayer]
   )
   const isPlayerTurn = computed(() => !currentPlayer.value.isComputer)
-  const canRoll = computed(
-    () =>
-      gameState.value.dice.some((die) => !die.isLocked) &&
-      !gameState.value.isBust
-  )
+  const canRoll = computed(() => {
+    // Can roll for the first time in a turn (all dice are unlocked and none selected)
+    if (gameState.value.isFirstRoll) {
+      return !gameState.value.isBust
+    }
+
+    // Can't roll if all dice are locked or if there's a bust
+    if (
+      !gameState.value.dice.some((die) => !die.isLocked) ||
+      gameState.value.isBust
+    ) {
+      return false
+    }
+
+    // Don't allow rerolling without selecting dice (must select at least one die to continue)
+    if (!gameState.value.dice.some((die) => die.isSelected)) {
+      return false
+    }
+
+    return true
+  })
   const canKeepScore = computed(() => {
     const totalScore =
       gameState.value.currentTurnScore + gameState.value.potentialScore
@@ -85,6 +101,29 @@ export function useGameStore() {
 
     // Either player must be qualified already OR the current score must meet the threshold
     return isQualified || meetsQualificationThreshold
+  })
+
+  const rollButtonTooltip = computed(() => {
+    if (gameState.value.isBust) {
+      return "Cannot roll after busting"
+    }
+
+    if (!gameState.value.dice.some((die) => !die.isLocked)) {
+      return "All dice are locked"
+    }
+
+    if (
+      !gameState.value.isFirstRoll &&
+      !gameState.value.dice.some((die) => die.isSelected)
+    ) {
+      return "You must select at least one die before rerolling"
+    }
+
+    if (gameState.value.isFirstRoll) {
+      return "Roll the dice to start your turn"
+    }
+
+    return "Roll the dice"
   })
 
   function rollDice() {
@@ -759,5 +798,6 @@ export function useGameStore() {
     playComputerTurn,
     isDarkMode,
     toggleDarkMode,
+    rollButtonTooltip,
   }
 }

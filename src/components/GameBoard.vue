@@ -100,46 +100,6 @@
           </div>
         </div>
 
-        <!-- Bust Message -->
-        <div v-if="gameState.isBust" class="text-center mb-4">
-          <div
-            class="p-3 rounded relative"
-            role="alert"
-            :class="{
-              'bg-red-100 border border-red-400 text-red-700': !isDarkMode,
-              'bg-red-900 border border-red-800 text-red-200': isDarkMode,
-            }"
-          >
-            <span class="block sm:inline text-lg font-bold">{{
-              gameState.bustMessage
-            }}</span>
-            <p class="text-sm">Transitioning to next player...</p>
-          </div>
-        </div>
-
-        <!-- Qualification Warning Message -->
-        <div v-if="showQualificationWarning" class="text-center mb-4">
-          <div
-            class="p-3 rounded relative"
-            role="alert"
-            :class="{
-              'bg-yellow-100 border border-yellow-400 text-yellow-800':
-                !isDarkMode,
-              'bg-yellow-900 border border-yellow-700 text-yellow-200':
-                isDarkMode,
-            }"
-          >
-            <span class="block sm:inline text-lg font-bold">
-              Qualification Required!
-            </span>
-            <p class="text-sm">
-              You need at least {{ MIN_QUALIFYING_SCORE }} points in one turn to
-              qualify. Current turn total:
-              {{ gameState.currentTurnScore + gameState.potentialScore }}
-            </p>
-          </div>
-        </div>
-
         <!-- Dice Area -->
         <div class="flex justify-center gap-4 mb-4">
           <div
@@ -149,22 +109,30 @@
               'w-12 h-12 md:w-16 md:h-16 rounded-lg shadow-lg flex items-center justify-center text-2xl font-bold transition-all duration-200',
               // Dice that are selected
               die.isSelected
-                ? 'bg-blue-100 ring-2 ring-blue-500 text-blue-800'
+                ? isDarkMode
+                  ? 'bg-blue-800 ring-2 ring-blue-400 text-blue-100'
+                  : 'bg-blue-100 ring-2 ring-blue-500 text-blue-800'
                 : '',
               // Dice that are locked (banked from previous roll)
               die.isLocked
-                ? 'bg-green-100 border-2 border-green-500 cursor-not-allowed text-green-800'
+                ? isDarkMode
+                  ? 'bg-green-800 border-2 border-green-400 cursor-not-allowed text-green-100'
+                  : 'bg-green-100 border-2 border-green-500 cursor-not-allowed text-green-800'
                 : '',
               // Dice that are hidden between turns
               gameState.diceHidden
-                ? 'bg-gray-300 cursor-not-allowed text-gray-500'
+                ? isDarkMode
+                  ? 'bg-gray-700 cursor-not-allowed text-gray-400'
+                  : 'bg-gray-300 cursor-not-allowed text-gray-500'
                 : '',
               // Dice that cannot be selected (not part of a scoring combination)
               !die.isLocked &&
               !die.isSelected &&
               !die.isValidSelection &&
               !gameState.diceHidden
-                ? 'bg-gray-100 opacity-70 cursor-not-allowed text-gray-500'
+                ? isDarkMode
+                  ? 'bg-gray-800 opacity-70 cursor-not-allowed text-gray-400'
+                  : 'bg-gray-100 opacity-70 cursor-not-allowed text-gray-500'
                 : '',
               // Disable during computer turn
               !isPlayerTurn ? 'cursor-not-allowed opacity-80' : '',
@@ -175,7 +143,7 @@
               !gameState.diceHidden &&
               isPlayerTurn
                 ? isDarkMode
-                  ? 'bg-gray-700 text-white cursor-pointer hover:bg-gray-600'
+                  ? 'bg-gray-600 text-white cursor-pointer hover:bg-gray-500'
                   : 'bg-white cursor-pointer hover:bg-blue-50'
                 : '',
             ]"
@@ -198,6 +166,7 @@
           <button
             @click="rollDice"
             :disabled="!canRoll || !isPlayerTurn"
+            :title="rollDiceButtonTooltip"
             :class="[
               'px-4 py-2 rounded-lg font-semibold transition-all duration-200',
               canRoll && isPlayerTurn
@@ -239,28 +208,82 @@
               class="w-4 h-4 border mr-1"
               :class="[
                 isDarkMode
-                  ? 'bg-gray-700 border-gray-600'
+                  ? 'bg-gray-600 border-gray-500'
                   : 'bg-white border-gray-300',
               ]"
             ></div>
             <span>Selectable (scores points)</span>
           </div>
           <div class="flex items-center">
-            <div class="w-4 h-4 bg-blue-100 ring-1 ring-blue-500 mr-1"></div>
+            <div
+              class="w-4 h-4 ring-1 mr-1"
+              :class="[
+                isDarkMode
+                  ? 'bg-blue-800 ring-blue-400 text-blue-100'
+                  : 'bg-blue-100 ring-blue-500',
+              ]"
+            ></div>
             <span>Selected</span>
           </div>
           <div class="flex items-center">
             <div
-              class="w-4 h-4 bg-green-100 border-2 border-green-500 mr-1"
+              class="w-4 h-4 border-2 mr-1"
+              :class="[
+                isDarkMode
+                  ? 'bg-green-800 border-green-400'
+                  : 'bg-green-100 border-green-500',
+              ]"
             ></div>
             <span>Locked (banked points)</span>
           </div>
           <div class="flex items-center">
             <div
               class="w-4 h-4 opacity-70 mr-1"
-              :class="[isDarkMode ? 'bg-gray-600' : 'bg-gray-100']"
+              :class="[
+                isDarkMode ? 'bg-gray-800 text-gray-400' : 'bg-gray-100',
+              ]"
             ></div>
             <span>Not scorable</span>
+          </div>
+        </div>
+
+        <!-- Bust Message -->
+        <div v-if="gameState.isBust" class="text-center mt-4 mb-2">
+          <div
+            class="p-3 rounded relative"
+            role="alert"
+            :class="{
+              'bg-red-100 border border-red-400 text-red-700': !isDarkMode,
+              'bg-red-900 border border-red-800 text-red-200': isDarkMode,
+            }"
+          >
+            <span class="block sm:inline text-lg font-bold">{{
+              gameState.bustMessage
+            }}</span>
+            <p class="text-sm">Transitioning to next player...</p>
+          </div>
+        </div>
+
+        <!-- Qualification Warning Message -->
+        <div v-if="showQualificationWarning" class="text-center mt-4 mb-2">
+          <div
+            class="p-3 rounded relative"
+            role="alert"
+            :class="{
+              'bg-yellow-100 border border-yellow-400 text-yellow-800':
+                !isDarkMode,
+              'bg-yellow-900 border border-yellow-700 text-yellow-200':
+                isDarkMode,
+            }"
+          >
+            <span class="block sm:inline text-lg font-bold">
+              Qualification Required!
+            </span>
+            <p class="text-sm">
+              You need at least {{ MIN_QUALIFYING_SCORE }} points in one turn to
+              qualify. Current turn total:
+              {{ gameState.currentTurnScore + gameState.potentialScore }}
+            </p>
           </div>
         </div>
       </div>
@@ -343,6 +366,7 @@ const {
   resetGame,
   isDarkMode,
   toggleDarkMode,
+  rollButtonTooltip,
 } = useGameStore()
 
 const MIN_QUALIFYING_SCORE = 1000
@@ -379,6 +403,15 @@ const keepScoreButtonTooltip = computed(() => {
   }
 
   return "Bank your points and end your turn"
+})
+
+// Tooltip for the Roll Dice button
+const rollDiceButtonTooltip = computed(() => {
+  if (!isPlayerTurn.value) {
+    return "It's not your turn to roll"
+  }
+
+  return rollButtonTooltip.value
 })
 
 // Watch for end turn transitions to make sure computer's turn is triggered
