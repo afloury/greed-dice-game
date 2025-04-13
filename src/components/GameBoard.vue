@@ -328,7 +328,6 @@ const {
   toggleLanguage,
   setRollCallback,
   MIN_QUALIFYING_SCORE,
-  WINNING_SCORE,
 } = localStore
 
 // Computed property to determine if qualification warning should be shown
