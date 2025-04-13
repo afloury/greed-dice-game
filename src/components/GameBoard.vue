@@ -4,13 +4,13 @@
       <!-- Game Header -->
       <div class="game-panel p-6 mb-6">
         <h1 class="text-3xl font-bold text-center mb-4 game-title">
-          {{ isEnglish ? "10,000 Dice Game" : "Jeu de Dés 10,000" }}
+          {{ t("gameTitle") }}
         </h1>
         <div class="flex justify-between items-center">
           <div class="text-lg">
-            {{ isEnglish ? "Current Phase:" : "Phase Actuelle:" }}
+            {{ t("currentPhase") }}
             <span class="font-semibold text-accent">{{
-              translateGamePhase(gameState.gamePhase)
+              t(`phases.${gameState.gamePhase}`)
             }}</span>
           </div>
           <div class="flex gap-2">
@@ -24,7 +24,7 @@
               @click="handleResetGame"
               class="px-4 py-2 rounded-lg font-semibold transition-all duration-200 game-button-secondary"
             >
-              {{ isEnglish ? "New Game" : "Nouvelle Partie" }}
+              {{ t("newGame") }}
             </button>
           </div>
         </div>
@@ -39,16 +39,16 @@
         >
           <div class="game-panel settings-modal" @click.stop>
             <div class="settings-modal-header">
-              <h2>{{ isEnglish ? "Settings" : "Paramètres" }}</h2>
+              <h2>{{ t("settings") }}</h2>
               <button @click="closeSettings">×</button>
             </div>
             <div class="settings-modal-body">
               <div class="settings-section">
                 <h3 class="text-lg font-medium mb-4">
-                  {{ isEnglish ? "Display" : "Affichage" }}
+                  {{ t("display") }}
                 </h3>
                 <div class="flex items-center justify-between mb-4">
-                  <span>{{ isEnglish ? "Dark Mode" : "Mode Sombre" }}</span>
+                  <span>{{ t("darkMode") }}</span>
                   <button
                     @click="toggleDarkMode"
                     class="p-2 rounded-lg font-semibold transition-all duration-200 game-icon-button"
@@ -57,7 +57,7 @@
                   </button>
                 </div>
                 <div class="flex items-center justify-between mb-6">
-                  <span>{{ isEnglish ? "Language" : "Langue" }}</span>
+                  <span>{{ t("language") }}</span>
                   <button
                     @click="toggleLanguage"
                     class="p-2 rounded-lg font-semibold transition-all duration-200 game-icon-button"
@@ -67,14 +67,10 @@
                 </div>
 
                 <h3 class="text-lg font-medium mb-4">
-                  {{ isEnglish ? "Sound" : "Son" }}
+                  {{ t("sound") }}
                 </h3>
                 <label class="block mb-2">
-                  {{
-                    isEnglish
-                      ? "Sound Effects Volume:"
-                      : "Volume des Effets Sonores:"
-                  }}
+                  {{ t("soundEffectsVolume") }}
                 </label>
                 <div class="flex items-center gap-3">
                   <span>🔈</span>
@@ -95,14 +91,14 @@
                     @click="testSound"
                     class="game-button-secondary test-sound-btn"
                   >
-                    {{ isEnglish ? "Test Sound" : "Tester le Son" }}
+                    {{ t("testSound") }}
                   </button>
                 </div>
               </div>
             </div>
             <div class="settings-modal-footer">
               <button @click="closeSettings" class="game-button close-btn">
-                {{ isEnglish ? "Close" : "Fermer" }}
+                {{ t("close") }}
               </button>
             </div>
           </div>
@@ -125,27 +121,23 @@
               v-if="player.isComputer"
               class="text-sm text-accent-secondary"
             >
-              ({{ isEnglish ? "Computer" : "Ordinateur" }})
+              ({{ t("computer") }})
             </span>
             <span v-else class="text-sm text-accent-secondary">
-              ({{ isEnglish ? "Player " : "Joueur " }}{{ player.id + 1 }})
+              ({{ t(player.id === 0 ? "player1" : "player2") }})
             </span>
           </h2>
           <div class="text-lg">
-            {{ isEnglish ? "Total Score:" : "Score Total:" }}
+            {{ t("totalScore") }}
             <span class="font-semibold text-accent">{{
               player.totalScore
             }}</span>
           </div>
           <div v-if="!player.isQualified" class="text-sm text-danger">
-            {{
-              isEnglish
-                ? `Needs ${MIN_QUALIFYING_SCORE} points to qualify`
-                : `Besoin de ${MIN_QUALIFYING_SCORE} points pour se qualifier`
-            }}
+            {{ t("needsQualification", [MIN_QUALIFYING_SCORE]) }}
           </div>
           <div v-else class="text-sm text-success">
-            {{ isEnglish ? "Qualified" : "Qualifié" }}
+            {{ t("qualified") }}
           </div>
         </div>
       </div>
@@ -158,37 +150,29 @@
         <!-- Scoring -->
         <div class="text-center mb-6">
           <h2 class="text-xl font-bold">
-            {{ isEnglish ? "Scoring" : "Points" }}
+            {{ t("scoring") }}
           </h2>
           <div class="grid grid-cols-2 gap-4 text-left max-w-md mx-auto mt-4">
             <div class="text-success p-3 rounded-lg scoring-card">
-              <span class="font-medium">{{
-                isEnglish ? "Banked Points:" : "Points en Banque:"
-              }}</span>
+              <span class="font-medium">{{ t("bankedPoints") }}</span>
               <span class="ml-2 text-xl font-bold">{{
                 gameState.currentTurnScore
               }}</span>
             </div>
             <div class="p-3 rounded-lg scoring-card">
-              <span class="font-medium">{{
-                isEnglish ? "Roll score:" : "Score du Lancer:"
-              }}</span>
+              <span class="font-medium">{{ t("rollScore") }}</span>
               <span class="ml-2 text-xl font-bold">{{
                 gameState.isFirstRoll ? 0 : gameState.lastRollScore
               }}</span>
             </div>
             <div class="text-accent-secondary p-3 rounded-lg scoring-card">
-              <span class="font-medium">{{
-                isEnglish ? "Selected:" : "Sélectionné:"
-              }}</span>
+              <span class="font-medium">{{ t("selected") }}</span>
               <span class="ml-2 text-xl font-bold">{{
                 gameState.potentialScore
               }}</span>
             </div>
             <div class="text-accent p-3 rounded-lg scoring-card">
-              <span class="font-medium">{{
-                isEnglish ? "Total Available:" : "Total Disponible:"
-              }}</span>
+              <span class="font-medium">{{ t("totalAvailable") }}</span>
               <span class="ml-2 text-xl font-bold">{{
                 gameState.currentTurnScore + gameState.potentialScore
               }}</span>
@@ -271,7 +255,7 @@
               !canRoll || !isPlayerTurn ? 'disabled' : '',
             ]"
           >
-            {{ isEnglish ? "Roll Dice" : "Lancer les Dés" }}
+            {{ t("rollDice") }}
           </button>
           <button
             @click="keepScore"
@@ -282,12 +266,10 @@
             ]"
             :title="keepScoreButtonTooltip"
           >
-            {{ isEnglish ? "Keep Score" : "Garder les Points"
+            {{ t("keepScore")
             }}{{
               !currentPlayer.isQualified
-                ? isEnglish
-                  ? ` (Need ${MIN_QUALIFYING_SCORE})`
-                  : ` (Besoin de ${MIN_QUALIFYING_SCORE})`
+                ? t("needPoints", [MIN_QUALIFYING_SCORE])
                 : ""
             }}
           </button>
@@ -298,25 +280,17 @@
           v-if="gameState.diceHidden"
           class="text-center text-accent-secondary text-sm mt-4 mb-2"
         >
-          {{
-            isEnglish
-              ? "Roll dice to start your turn"
-              : "Lancez les dés pour commencer votre tour"
-          }}
+          {{ t("rollToStart") }}
         </div>
 
         <!-- Bust Message -->
         <div v-if="gameState.isBust" class="text-center mt-4 mb-2">
           <div class="p-3 rounded relative bust-message" role="alert">
             <span class="block sm:inline text-lg font-bold">{{
-              translateBustMessage(gameState.bustMessage)
+              gameState.bustMessage
             }}</span>
             <p class="text-sm">
-              {{
-                isEnglish
-                  ? "Transitioning to next player..."
-                  : "Passage au joueur suivant..."
-              }}
+              {{ t("transitioningToNextPlayer") }}
             </p>
           </div>
         </div>
@@ -325,16 +299,10 @@
         <div v-if="showQualificationWarning" class="text-center mt-4 mb-2">
           <div class="p-3 rounded relative qualification-warning" role="alert">
             <span class="block sm:inline text-lg font-bold">
-              {{
-                isEnglish ? "Qualification Required!" : "Qualification Requise!"
-              }}
+              {{ t("qualificationRequired") }}
             </span>
             <p class="text-sm">
-              {{
-                isEnglish
-                  ? `You need at least ${MIN_QUALIFYING_SCORE} points in one turn to qualify. Current turn total:`
-                  : `Vous avez besoin d'au moins ${MIN_QUALIFYING_SCORE} points en un tour pour vous qualifier. Total du tour actuel:`
-              }}
+              {{ t("qualificationMessage", [MIN_QUALIFYING_SCORE]) }}
               {{ gameState.currentTurnScore + gameState.potentialScore }}
             </p>
           </div>
@@ -346,31 +314,21 @@
         >
           <div class="flex items-center">
             <div class="w-4 h-4 mr-1 die-sample selectable-sample"></div>
-            <span>{{
-              isEnglish
-                ? "Selectable (scores points)"
-                : "Sélectionnable (donne des points)"
-            }}</span>
+            <span>{{ t("selectable") }}</span>
           </div>
           <div class="flex items-center">
             <div class="w-4 h-4 mr-1 die-sample selected-sample"></div>
-            <span>{{ isEnglish ? "Selected" : "Sélectionné" }}</span>
+            <span>{{ t("selectedDie") }}</span>
           </div>
           <div class="flex items-center">
             <div class="w-4 h-4 mr-1 die-sample locked-sample"></div>
-            <span>{{
-              isEnglish
-                ? "Locked (banked points)"
-                : "Verrouillé (points en banque)"
-            }}</span>
+            <span>{{ t("locked") }}</span>
           </div>
           <div class="flex items-center">
             <div
               class="w-4 h-4 opacity-70 mr-1 die-sample invalid-sample"
             ></div>
-            <span>{{
-              isEnglish ? "Not scorable" : "Non comptabilisable"
-            }}</span>
+            <span>{{ t("notScorable") }}</span>
           </div>
         </div>
       </div>
@@ -378,62 +336,24 @@
       <!-- Game Rules -->
       <div class="game-panel p-6 mb-6">
         <h2 class="text-xl font-bold mb-4 text-center">
-          {{ isEnglish ? "Scoring Rules" : "Règles de Scoring" }}
+          {{ t("scoringRules") }}
         </h2>
         <div class="grid grid-cols-2 gap-4">
           <div class="rules-card p-3 rounded-lg">
             <ul class="list-disc pl-5">
-              <li>
-                {{
-                  isEnglish ? "Single 1: 100 points" : "Un seul 1: 100 points"
-                }}
-              </li>
-              <li>
-                {{ isEnglish ? "Single 5: 50 points" : "Un seul 5: 50 points" }}
-              </li>
-              <li>
-                {{
-                  isEnglish ? "Three 1s: 1,000 points" : "Trois 1: 1,000 points"
-                }}
-              </li>
-              <li>
-                {{
-                  isEnglish
-                    ? "Three of a kind: number × 100"
-                    : "Brelan: chiffre × 100"
-                }}
-              </li>
+              <li>{{ t("singleOne") }}</li>
+              <li>{{ t("singleFive") }}</li>
+              <li>{{ t("threeOnes") }}</li>
+              <li>{{ t("threeOfAKind") }}</li>
             </ul>
           </div>
           <div class="rules-card p-3 rounded-lg">
             <ul class="list-disc pl-5">
-              <li>
-                {{
-                  isEnglish
-                    ? "Four of a kind: 2× three of a kind"
-                    : "Carré: 2× brelan"
-                }}
-              </li>
-              <li>
-                {{
-                  isEnglish
-                    ? "Five of a kind: 3× three of a kind"
-                    : "Cinq identiques: 3× brelan"
-                }}
-              </li>
-              <li>
-                {{
-                  isEnglish
-                    ? "Straight (1-5 or 2-6): 1,500 points"
-                    : "Suite (1-5 ou 2-6): 1,500 points"
-                }}
-              </li>
+              <li>{{ t("fourOfAKind") }}</li>
+              <li>{{ t("fiveOfAKind") }}</li>
+              <li>{{ t("straight") }}</li>
               <li class="text-red-600 font-semibold">
-                {{
-                  isEnglish
-                    ? "No scoring dice: Bust (lose all turn points!)"
-                    : "Aucun dé comptabilisable: Échec (perte de tous les points du tour!)"
-                }}
+                {{ t("noScoringDice") }}
               </li>
             </ul>
           </div>
@@ -445,6 +365,7 @@
 
 <script setup lang="ts">
 import { useGameStore } from "../composables/useGameStore"
+import { useI18n } from "../i18n"
 import ComputerAI from "./ComputerAI.vue"
 import DiceFace from "./DiceFace.vue"
 import { ref, watch, computed, onMounted, defineProps } from "vue"
@@ -456,6 +377,9 @@ const props = defineProps({
 
 // Use the provided store or create a new one if not provided (for backward compatibility)
 const localStore = props.store || useGameStore()
+
+// Initialize i18n
+const { t } = useI18n()
 
 // Define the interface for the exposed methods from ComputerAI
 interface ComputerAIExpose {
@@ -545,34 +469,6 @@ const {
 
 const MIN_QUALIFYING_SCORE = 1000
 
-// Translate game phases
-const translateGamePhase = (phase: string) => {
-  if (isEnglish.value) return phase
-
-  const translations: Record<string, string> = {
-    QUALIFICATION: "QUALIFICATION",
-    NORMAL: "NORMAL",
-    END_GAME: "FIN DE PARTIE",
-    Rolling: "Lancer",
-    Selecting: "Sélection",
-    "End Turn": "Fin du Tour",
-    "Game Over": "Partie Terminée",
-  }
-
-  return translations[phase] || phase
-}
-
-// Translate bust messages
-const translateBustMessage = (message: string) => {
-  if (isEnglish.value) return message
-
-  if (message.includes("BUST")) {
-    return "ÉCHEC! Aucun dé comptabilisable"
-  }
-
-  return message
-}
-
 // Computed property to determine if qualification warning should be shown
 const showQualificationWarning = computed(() => {
   // Only show for the human player's turn
@@ -593,44 +489,48 @@ const keepScoreButtonTooltip = computed(() => {
     gameState.value.currentTurnScore + gameState.value.potentialScore
 
   if (!currentPlayer.value.isQualified && turnTotal < MIN_QUALIFYING_SCORE) {
-    return isEnglish.value
-      ? `You need at least ${MIN_QUALIFYING_SCORE} points in one turn to qualify. Current: ${turnTotal}`
-      : `Vous avez besoin d'au moins ${MIN_QUALIFYING_SCORE} points en un tour pour vous qualifier. Actuel: ${turnTotal}`
+    return t("qualificationNeeded", [MIN_QUALIFYING_SCORE, turnTotal])
   }
 
   if (!canKeepScore.value) {
-    return isEnglish.value ? "No points to keep" : "Aucun point à garder"
+    return t("noPointsToKeep")
   }
 
   if (!isPlayerTurn.value) {
-    return isEnglish.value ? "Not your turn" : "Ce n'est pas votre tour"
+    return t("notYourTurnKeep")
   }
 
-  return isEnglish.value
-    ? "Bank your points and end your turn"
-    : "Mettez vos points en banque et terminez votre tour"
+  return t("bankPoints")
 })
 
 // Tooltip for the Roll Dice button
 const rollDiceButtonTooltip = computed(() => {
   if (!isPlayerTurn.value) {
-    return isEnglish.value
-      ? "It's not your turn to roll"
-      : "Ce n'est pas votre tour de lancer"
+    return t("notYourTurn")
   }
 
-  if (isEnglish.value) {
-    return rollButtonTooltip.value
-  } else {
-    // Translate the roll button tooltip
-    if (rollButtonTooltip.value.includes("No dice selected")) {
-      return "Aucun dé sélectionné pour le nouveau lancer"
-    } else if (rollButtonTooltip.value.includes("Roll the dice")) {
-      return "Lancez les dés pour commencer votre tour"
-    } else {
-      return rollButtonTooltip.value
-    }
+  // We should use our own detailed tooltips instead of the ones from the store
+  // since we have proper translations
+  if (gameState.value.isBust) {
+    return t("cantRollBust")
   }
+
+  if (!gameState.value.dice.some((die) => !die.isLocked)) {
+    return t("allDiceLocked")
+  }
+
+  if (
+    !gameState.value.isFirstRoll &&
+    !gameState.value.dice.some((die) => die.isSelected)
+  ) {
+    return t("mustSelectDie")
+  }
+
+  if (gameState.value.isFirstRoll) {
+    return t("rollToStartTurn")
+  }
+
+  return t("rollDiceTooltip")
 })
 
 // Set up the roll animation callback

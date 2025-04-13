@@ -451,9 +451,12 @@ export function useGameStore() {
     let message = ""
 
     if (gameState.value.currentTurnScore > 0) {
-      message = `Bust! ${player.name} lost ${gameState.value.currentTurnScore} points from this turn!`
+      message = t("bustLostPoints", [
+        player.name,
+        gameState.value.currentTurnScore,
+      ])
     } else {
-      message = `Bust! No scoring combinations possible!`
+      message = t("bustGeneric")
     }
 
     gameState.value.bustMessage = message
@@ -607,7 +610,7 @@ export function useGameStore() {
     if (potentialTotalScore > WINNING_SCORE) {
       // Bust rule for exceeding 10,000 - lose all turn points
       gameState.value.isBust = true
-      gameState.value.bustMessage = "BUST! Exceeded 10,000 points"
+      gameState.value.bustMessage = t("bustExceededMax")
 
       // No score is added, turn ends
       endTurn()

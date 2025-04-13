@@ -2,19 +2,14 @@
 import GameBoard from "./components/GameBoard.vue"
 import GameMenu from "./components/GameMenu.vue"
 import { useGameStore } from "./composables/useGameStore"
+import { useI18n } from "./i18n"
 import { watch } from "vue"
 
 const store = useGameStore()
-const {
-  isDarkMode,
-  isEnglish,
-  toggleDarkMode,
-  toggleLanguage,
-  showMenu,
-  setPlayers,
-  gameState,
-  refreshGameState,
-} = store
+const { gameState, showMenu, setPlayers, refreshGameState } = store
+
+// Initialize i18n
+const { t } = useI18n()
 
 // Watch for player changes for debugging
 watch(
@@ -41,14 +36,7 @@ const handleStartGame = (players) => {
 </script>
 
 <template>
-  <GameMenu
-    v-if="showMenu"
-    :isEnglish="isEnglish"
-    :isDarkMode="isDarkMode"
-    :toggleLanguage="toggleLanguage"
-    :toggleDarkMode="toggleDarkMode"
-    @startGame="handleStartGame"
-  />
+  <GameMenu v-if="showMenu" @startGame="handleStartGame" />
   <GameBoard v-else :store="store" />
 </template>
 

@@ -4,13 +4,13 @@
   >
     <div class="game-panel p-8 max-w-lg w-full">
       <h1 class="text-4xl font-bold text-center mb-6 game-title">
-        {{ isEnglish ? "10,000 Dice Game" : "Jeu de Dés 10,000" }}
+        {{ t("gameTitle") }}
       </h1>
 
       <!-- Game Mode Selection -->
       <div class="mb-8">
         <h2 class="text-xl font-bold mb-4">
-          {{ isEnglish ? "Game Mode" : "Mode de Jeu" }}
+          {{ t("gameModes") }}
         </h2>
         <div class="grid grid-cols-2 gap-4">
           <button
@@ -22,7 +22,7 @@
                 : 'game-button-secondary border border-neutral-400',
             ]"
           >
-            {{ isEnglish ? "vs Computer" : "vs Ordinateur" }}
+            {{ t("vsComputer") }}
           </button>
           <button
             @click="gameMode = 'vs-friend'"
@@ -33,7 +33,7 @@
                 : 'game-button-secondary border border-neutral-400',
             ]"
           >
-            {{ isEnglish ? "vs Friend" : "vs Ami" }}
+            {{ t("vsFriend") }}
           </button>
         </div>
       </div>
@@ -41,27 +41,17 @@
       <!-- Player Names -->
       <div class="mb-8">
         <h2 class="text-xl font-bold mb-4">
-          {{ isEnglish ? "Player Names" : "Noms des Joueurs" }}
+          {{ t("playerNames") }}
         </h2>
-
-        <!-- Player 1 -->
-        <div class="mb-6">
+        <div class="mb-4">
           <label class="block mb-2">
-            {{ isEnglish ? "Player 1" : "Joueur 1" }}
+            {{ gameMode === "vs-computer" ? t("player") : t("player1") }}
           </label>
           <div class="flex gap-2">
             <input
               v-model="player1Name"
               type="text"
-              :placeholder="
-                gameMode === 'vs-computer'
-                  ? isEnglish
-                    ? 'Player'
-                    : 'Joueur'
-                  : isEnglish
-                  ? 'Player 1'
-                  : 'Joueur 1'
-              "
+              :placeholder="t('enterName')"
               class="flex-1 p-2 rounded border input-field"
             />
             <button
@@ -73,17 +63,15 @@
             </button>
           </div>
         </div>
-
-        <!-- Player 2 (shown only for vs-friend mode) -->
         <div v-if="gameMode === 'vs-friend'" class="mb-4">
           <label class="block mb-2">
-            {{ isEnglish ? "Player 2" : "Joueur 2" }}
+            {{ t("player2") }}
           </label>
           <div class="flex gap-2">
             <input
               v-model="player2Name"
               type="text"
-              :placeholder="isEnglish ? 'Enter name' : 'Entrez un nom'"
+              :placeholder="t('enterName')"
               class="flex-1 p-2 rounded border input-field"
             />
             <button
@@ -95,17 +83,16 @@
             </button>
           </div>
         </div>
-
         <!-- Computer player name (shown only for vs-computer mode) -->
         <div v-if="gameMode === 'vs-computer'" class="mb-4">
           <label class="block mb-2">
-            {{ isEnglish ? "Computer" : "Ordinateur" }}
+            {{ t("computer") }}
           </label>
           <div class="flex gap-2">
             <input
               v-model="player2Name"
               type="text"
-              :placeholder="isEnglish ? 'Computer' : 'Ordinateur'"
+              :placeholder="t('computer')"
               class="flex-1 p-2 rounded border input-field"
             />
             <button
@@ -144,7 +131,7 @@
         @click="startGame"
         class="w-full p-4 rounded-lg font-bold text-xl game-button-primary transition-all duration-200"
       >
-        {{ isEnglish ? "Start Game" : "Commencer la Partie" }}
+        {{ t("newGame") }}
       </button>
     </div>
   </div>
@@ -152,14 +139,12 @@
 
 <script setup lang="ts">
 import { ref } from "vue"
+import { useGameStore } from "../composables/useGameStore"
+import { useI18n } from "../i18n"
 
-// Props
-const props = defineProps<{
-  isEnglish: boolean
-  isDarkMode: boolean
-  toggleLanguage: () => void
-  toggleDarkMode: () => void
-}>()
+// Use the game store and i18n directly
+const { isDarkMode, toggleDarkMode } = useGameStore()
+const { isEnglish, toggleLanguage, t } = useI18n()
 
 // Emits
 const emit = defineEmits<{
@@ -174,97 +159,81 @@ const player1Name = ref("")
 const player2Name = ref("")
 
 // Random nickname generator
-const englishNicknames = [
-  "Dice King",
-  "Lucky Roller",
-  "Score Master",
-  "Fortune Teller",
-  "Brave Gambler",
-  "Risk Taker",
-  "Dice Wizard",
-  "Point Hunter",
-  "Lucky Charm",
-  "High Roller",
-  "Dice Ninja",
-  "Straight Shooter",
-  "Point Machine",
-  "Sharp Shooter",
-  "Dice Baron",
-  "Gold Digger",
-  "Royal Flush",
-  "Jackpot",
-  "Wild Card",
-  "Master Mind",
-]
+const nicknames = {
+  english: [
+    "High Roller",
+    "Dice Master",
+    "Lucky Six",
+    "Roll King",
+    "Fortune Roller",
+    "Chance Taker",
+    "Dice Wizard",
+    "Double Six",
+    "Straight Shooter",
+    "Dice Baron",
+    "Gold Digger",
+    "Risk Taker",
+  ],
+  french: [
+    "Grand Joueur",
+    "Maître des Dés",
+    "Chanceux",
+    "Roi du Lancer",
+    "Rouleur Fortuné",
+    "Preneur de Risque",
+    "Magicien des Dés",
+    "Double Six",
+    "Tireur Droit",
+    "Baron des Dés",
+    "Chercheur d'Or",
+    "Risqueur",
+  ],
+}
 
-const frenchNicknames = [
-  "Roi des Dés",
-  "Lanceur Chanceux",
-  "Maître du Score",
-  "Devin",
-  "Joueur Courageux",
-  "Preneur de Risque",
-  "Sorcier des Dés",
-  "Chasseur de Points",
-  "Porte-Bonheur",
-  "Grand Joueur",
-  "Ninja des Dés",
-  "Tireur d'Élite",
-  "Machine à Points",
-  "Tireur Précis",
-  "Baron des Dés",
-  "Chercheur d'Or",
-  "Quinte Flush",
-  "Jackpot",
-  "Joker",
-  "Cerveau",
-]
+// Generate a random nickname based on current language
+const generateRandomName = (playerNumber: 1 | 2) => {
+  const list = isEnglish.value ? nicknames.english : nicknames.french
+  const randomIndex = Math.floor(Math.random() * list.length)
+  const newNickname = list[randomIndex]
 
-// Generate random nickname
-function generateRandomName(playerNumber: number) {
-  const nicknames = props.isEnglish ? englishNicknames : frenchNicknames
-  const randomIndex = Math.floor(Math.random() * nicknames.length)
-
-  // Make sure we don't choose the same nickname for both players
-  let newNickname = nicknames[randomIndex]
+  // Ensure players don't get the same nickname
   if (playerNumber === 2 && player1Name.value === newNickname) {
-    // Choose a different nickname if it's the same as player 1
-    const differentIndex = (randomIndex + 1) % nicknames.length
-    newNickname = nicknames[differentIndex]
+    return generateRandomName(playerNumber) // Try again
   }
 
+  // Set the nickname to the appropriate player
   if (playerNumber === 1) {
     player1Name.value = newNickname
-  } else if (playerNumber === 2) {
+  } else {
     player2Name.value = newNickname
   }
 }
 
-// Start the game
-function startGame() {
-  // Use the provided names or default values based on game mode
+// Start the game with current players
+const startGame = () => {
+  // Set default names if empty
   let player1NameValue = player1Name.value.trim()
   let player2NameValue = player2Name.value.trim()
 
-  // Set default names if empty
+  // If playing vs computer and player name empty, use "Player"
   if (gameMode.value === "vs-computer") {
-    // vs Computer mode: Player and Computer
     if (!player1NameValue) {
-      player1NameValue = props.isEnglish ? "Player" : "Joueur"
+      player1NameValue = t("player")
     }
     if (!player2NameValue) {
-      player2NameValue = props.isEnglish ? "Computer" : "Ordinateur"
+      player2NameValue = t("computer")
     }
   } else {
-    // vs Friend mode: Player 1 and Player 2
+    // If playing vs friend and player names empty, use "Player 1" and "Player 2"
     if (!player1NameValue) {
-      player1NameValue = props.isEnglish ? "Player 1" : "Joueur 1"
+      player1NameValue = t("player1")
     }
     if (!player2NameValue) {
-      player2NameValue = props.isEnglish ? "Player 2" : "Joueur 2"
+      player2NameValue = t("player2")
     }
   }
 
+  // Create player objects
   const players = [
     {
       id: 0,
@@ -278,7 +247,6 @@ function startGame() {
     },
   ]
 
-  console.log("Starting game with players:", players)
   emit("startGame", players)
 }
 </script>
