@@ -506,21 +506,6 @@ const testSound = () => {
   overflow: hidden;
 }
 
-.current-player::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(
-    90deg,
-    var(--color-accent),
-    var(--color-accent-secondary)
-  );
-  z-index: 1;
-}
-
 .game-icon-button {
   background-color: var(--color-card);
   border: 1px solid var(--color-border);
