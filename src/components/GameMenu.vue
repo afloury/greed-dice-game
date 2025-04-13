@@ -53,7 +53,15 @@
             <input
               v-model="player1Name"
               type="text"
-              :placeholder="isEnglish ? 'Enter name' : 'Entrez un nom'"
+              :placeholder="
+                gameMode === 'vs-computer'
+                  ? isEnglish
+                    ? 'Player'
+                    : 'Joueur'
+                  : isEnglish
+                  ? 'Player 1'
+                  : 'Joueur 1'
+              "
               class="flex-1 p-2 rounded border input-field"
             />
             <button
@@ -99,8 +107,14 @@
               type="text"
               :placeholder="isEnglish ? 'Computer' : 'Ordinateur'"
               class="flex-1 p-2 rounded border input-field"
-              disabled
             />
+            <button
+              @click="generateRandomName(2)"
+              class="p-2 rounded-lg game-button-secondary"
+              title="Generate random name"
+            >
+              🎲
+            </button>
           </div>
         </div>
       </div>
@@ -156,8 +170,8 @@ const emit = defineEmits<{
 const gameMode = ref<"vs-computer" | "vs-friend">("vs-computer")
 
 // Player names
-const player1Name = ref(props.isEnglish ? "Player 1" : "Joueur 1")
-const player2Name = ref(props.isEnglish ? "Computer" : "Ordinateur")
+const player1Name = ref("")
+const player2Name = ref("")
 
 // Random nickname generator
 const englishNicknames = [
@@ -211,38 +225,60 @@ function generateRandomName(playerNumber: number) {
   const nicknames = props.isEnglish ? englishNicknames : frenchNicknames
   const randomIndex = Math.floor(Math.random() * nicknames.length)
 
+  // Make sure we don't choose the same nickname for both players
+  let newNickname = nicknames[randomIndex]
+  if (playerNumber === 2 && player1Name.value === newNickname) {
+    // Choose a different nickname if it's the same as player 1
+    const differentIndex = (randomIndex + 1) % nicknames.length
+    newNickname = nicknames[differentIndex]
+  }
+
   if (playerNumber === 1) {
-    player1Name.value = nicknames[randomIndex]
-  } else {
-    if (gameMode.value === "vs-friend") {
-      player2Name.value = nicknames[randomIndex]
-    }
+    player1Name.value = newNickname
+  } else if (playerNumber === 2) {
+    player2Name.value = newNickname
   }
 }
 
 // Start the game
 function startGame() {
+  // Use the provided names or default values based on game mode
+  let player1NameValue = player1Name.value.trim()
+  let player2NameValue = player2Name.value.trim()
+
+  // Set default names if empty
+  if (gameMode.value === "vs-computer") {
+    // vs Computer mode: Player and Computer
+    if (!player1NameValue) {
+      player1NameValue = props.isEnglish ? "Player" : "Joueur"
+    }
+    if (!player2NameValue) {
+      player2NameValue = props.isEnglish ? "Computer" : "Ordinateur"
+    }
+  } else {
+    // vs Friend mode: Player 1 and Player 2
+    if (!player1NameValue) {
+      player1NameValue = props.isEnglish ? "Player 1" : "Joueur 1"
+    }
+    if (!player2NameValue) {
+      player2NameValue = props.isEnglish ? "Player 2" : "Joueur 2"
+    }
+  }
+
   const players = [
     {
       id: 0,
-      name: player1Name.value || (props.isEnglish ? "Player 1" : "Joueur 1"),
+      name: player1NameValue,
       isComputer: false,
     },
     {
       id: 1,
-      name:
-        player2Name.value ||
-        (props.isEnglish
-          ? gameMode.value === "vs-computer"
-            ? "Computer"
-            : "Player 2"
-          : gameMode.value === "vs-computer"
-          ? "Ordinateur"
-          : "Joueur 2"),
+      name: player2NameValue,
       isComputer: gameMode.value === "vs-computer",
     },
   ]
 
+  console.log("Starting game with players:", players)
   emit("startGame", players)
 }
 </script>

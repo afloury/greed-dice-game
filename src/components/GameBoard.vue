@@ -119,7 +119,18 @@
             currentPlayer.id === player.id ? 'current-player' : '',
           ]"
         >
-          <h2 class="text-xl font-bold mb-2">{{ player.name }}</h2>
+          <h2 class="text-xl font-bold mb-2">
+            {{ player.name }}
+            <span
+              v-if="player.isComputer"
+              class="text-sm text-accent-secondary"
+            >
+              ({{ isEnglish ? "Computer" : "Ordinateur" }})
+            </span>
+            <span v-else class="text-sm text-accent-secondary">
+              ({{ isEnglish ? "Player " : "Joueur " }}{{ player.id + 1 }})
+            </span>
+          </h2>
           <div class="text-lg">
             {{ isEnglish ? "Total Score:" : "Score Total:" }}
             <span class="font-semibold text-accent">{{
@@ -436,7 +447,15 @@
 import { useGameStore } from "../composables/useGameStore"
 import ComputerAI from "./ComputerAI.vue"
 import DiceFace from "./DiceFace.vue"
-import { ref, watch, computed, onMounted } from "vue"
+import { ref, watch, computed, onMounted, defineProps } from "vue"
+
+// Accept store as a prop
+const props = defineProps({
+  store: Object,
+})
+
+// Use the provided store or create a new one if not provided (for backward compatibility)
+const localStore = props.store || useGameStore()
 
 // Define the interface for the exposed methods from ComputerAI
 interface ComputerAIExpose {
@@ -505,6 +524,7 @@ const playDiceSound = () => {
   }
 }
 
+// Use the store provided by props
 const {
   gameState,
   currentPlayer,
@@ -521,7 +541,7 @@ const {
   isEnglish,
   toggleLanguage,
   setRollCallback,
-} = useGameStore()
+} = localStore
 
 const MIN_QUALIFYING_SCORE = 1000
 
@@ -615,6 +635,15 @@ const rollDiceButtonTooltip = computed(() => {
 
 // Set up the roll animation callback
 onMounted(() => {
+  console.log(
+    "GameBoard received store with players:",
+    props.store?.gameState.value.players.map((p) => p.name)
+  )
+  console.log(
+    "GameBoard using localStore, player names:",
+    gameState.value.players.map((p) => p.name)
+  )
+
   setRollCallback((rollingDiceIndices) => {
     // Only play sound and animate if there are dice to roll
     if (rollingDiceIndices.length > 0) {
@@ -654,7 +683,15 @@ watch(
 
 // Also ensure computer plays after a game reset
 function handleResetGame() {
+  console.log(
+    "Resetting game with player names:",
+    gameState.value.players.map((p) => p.name)
+  )
   resetGame()
+  console.log(
+    "Game reset, player names are now:",
+    gameState.value.players.map((p) => p.name)
+  )
   // The menu will be shown automatically because we set showMenu to true in resetGame
 }
 

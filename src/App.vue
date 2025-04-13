@@ -2,7 +2,9 @@
 import GameBoard from "./components/GameBoard.vue"
 import GameMenu from "./components/GameMenu.vue"
 import { useGameStore } from "./composables/useGameStore"
+import { watch } from "vue"
 
+const store = useGameStore()
 const {
   isDarkMode,
   isEnglish,
@@ -10,7 +12,32 @@ const {
   toggleLanguage,
   showMenu,
   setPlayers,
-} = useGameStore()
+  gameState,
+  refreshGameState,
+} = store
+
+// Watch for player changes for debugging
+watch(
+  () => gameState.value.players,
+  (newPlayers) => {
+    console.log(
+      "App.vue detected player change:",
+      newPlayers.map(
+        (p) => `${p.name} (${p.isComputer ? "Computer" : "Human"})`
+      )
+    )
+  },
+  { deep: true }
+)
+
+// Function to handle starting a game with custom player names
+const handleStartGame = (players) => {
+  console.log("App.vue: Starting game with players:", players)
+  setPlayers(players)
+
+  // Force a refresh of the game state when switching to GameBoard
+  refreshGameState()
+}
 </script>
 
 <template>
@@ -20,9 +47,9 @@ const {
     :isDarkMode="isDarkMode"
     :toggleLanguage="toggleLanguage"
     :toggleDarkMode="toggleDarkMode"
-    @startGame="setPlayers"
+    @startGame="handleStartGame"
   />
-  <GameBoard v-else />
+  <GameBoard v-else :store="store" />
 </template>
 
 <style>

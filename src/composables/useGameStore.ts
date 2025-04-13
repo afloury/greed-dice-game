@@ -29,20 +29,66 @@ export function useGameStore() {
   // Update player names based on language
   const updatePlayerNames = () => {
     if (gameState.value.players.length >= 2) {
-      // Only update default names
-      if (
-        gameState.value.players[0].name === "Player" ||
-        gameState.value.players[0].name === "Joueur"
-      ) {
-        gameState.value.players[0].name = isEnglish.value ? "Player" : "Joueur"
+      // Define default names based on game mode
+      const isVsComputerMode = gameState.value.players[1].isComputer
+
+      // Default names for Player/Computer mode
+      const player1ComputerModeNames = ["Player", "Joueur"]
+      const player2ComputerModeNames = ["Computer", "Ordinateur"]
+
+      // Default names for Friend mode
+      const player1FriendModeNames = ["Player 1", "Joueur 1"]
+      const player2FriendModeNames = ["Player 2", "Joueur 2"]
+
+      // Combined list of all possible default names for each player
+      const defaultPlayer1Names = [
+        ...player1ComputerModeNames,
+        ...player1FriendModeNames,
+      ]
+      const defaultPlayer2Names = [
+        ...player2ComputerModeNames,
+        ...player2FriendModeNames,
+      ]
+
+      console.log(
+        "Current player names:",
+        gameState.value.players[0].name,
+        gameState.value.players[1].name
+      )
+      console.log(
+        "Default names that would be changed:",
+        defaultPlayer1Names,
+        defaultPlayer2Names
+      )
+
+      // Only update player 1 name if it's one of the default names
+      if (defaultPlayer1Names.includes(gameState.value.players[0].name)) {
+        gameState.value.players[0].name = isVsComputerMode
+          ? isEnglish.value
+            ? "Player"
+            : "Joueur"
+          : isEnglish.value
+          ? "Player 1"
+          : "Joueur 1"
+        console.log(
+          "Updated player 1 name to:",
+          gameState.value.players[0].name
+        )
       }
-      if (
-        gameState.value.players[1].name === "Computer" ||
-        gameState.value.players[1].name === "Ordinateur"
-      ) {
-        gameState.value.players[1].name = isEnglish.value
-          ? "Computer"
-          : "Ordinateur"
+
+      // Only update player 2 name if it's one of the default names
+      if (defaultPlayer2Names.includes(gameState.value.players[1].name)) {
+        gameState.value.players[1].name = isVsComputerMode
+          ? isEnglish.value
+            ? "Computer"
+            : "Ordinateur"
+          : isEnglish.value
+          ? "Player 2"
+          : "Joueur 2"
+        console.log(
+          "Updated player 2 name to:",
+          gameState.value.players[1].name
+        )
       }
     }
   }
@@ -92,17 +138,45 @@ export function useGameStore() {
     diceHidden: true, // Initially hide dice until first roll
   })
 
+  // Force a refresh of the game state (use this to make components re-render)
+  function refreshGameState() {
+    // Create a new reference to force Vue's reactivity to update
+    gameState.value = { ...gameState.value }
+    console.log(
+      "Game state refreshed, current players:",
+      gameState.value.players.map((p) => p.name)
+    )
+  }
+
   // Set players from menu selection
   function setPlayers(
     players: Array<{ id: number; name: string; isComputer: boolean }>
   ) {
-    gameState.value.players = players.map((player) => ({
-      id: player.id,
-      name: player.name,
-      totalScore: 0,
-      isQualified: false,
-      isComputer: player.isComputer,
-    }))
+    console.log("Setting players in game store:", players)
+
+    // Preserve player totals and other data if it's the same players (for New Game function)
+    const updatedPlayers = players.map((player) => {
+      // Create a fresh player object with the new name and isComputer values
+      return {
+        id: player.id,
+        name: player.name, // Use the provided name directly
+        totalScore: 0,
+        isQualified: false,
+        isComputer: player.isComputer,
+      }
+    })
+
+    // Directly modify the gameState players array for immediate reactivity
+    gameState.value.players = updatedPlayers
+
+    console.log("Players after setup:", gameState.value.players)
+    console.log(
+      "Player names:",
+      gameState.value.players.map((p) => p.name)
+    )
+
+    // Force a refresh to ensure reactivity
+    refreshGameState()
 
     // Hide menu and start game
     showMenu.value = false
@@ -597,7 +671,8 @@ export function useGameStore() {
       `Turn changed from ${gameState.value.players[oldPlayerIndex].name} to ${currentPlayer.value.name}`
     )
 
-    // If the new player is the computer, start its turn after a delay
+    // Only start computer turn if the current player is a computer
+    // (This allows vs Friend mode to work correctly)
     if (currentPlayer.value.isComputer && !gameState.value.isGameOver) {
       console.log("Computer's turn is starting automatically from the store")
       setTimeout(playComputerTurn, 2000)
@@ -1147,21 +1222,73 @@ export function useGameStore() {
   }
 
   function resetGame() {
+    // Store the current settings before resetting
+    const player2IsComputer =
+      gameState.value.players.length > 1
+        ? gameState.value.players[1].isComputer
+        : true
+
+    // Keep original names if they're not default names
+    const player1Name = gameState.value.players[0].name
+    const player2Name = gameState.value.players[1].name
+
+    // Define default names based on game mode
+    const isVsComputerMode = player2IsComputer
+
+    // Default names for Player/Computer mode
+    const player1ComputerModeNames = ["Player", "Joueur"]
+    const player2ComputerModeNames = ["Computer", "Ordinateur"]
+
+    // Default names for Friend mode
+    const player1FriendModeNames = ["Player 1", "Joueur 1"]
+    const player2FriendModeNames = ["Player 2", "Joueur 2"]
+
+    // Combined list of all possible default names for each player
+    const defaultPlayer1Names = [
+      ...player1ComputerModeNames,
+      ...player1FriendModeNames,
+    ]
+    const defaultPlayer2Names = [
+      ...player2ComputerModeNames,
+      ...player2FriendModeNames,
+    ]
+
+    // Use custom names if they exist, otherwise use defaults
+    const usePlayer1Name = !defaultPlayer1Names.includes(player1Name)
+      ? player1Name
+      : isVsComputerMode
+      ? isEnglish.value
+        ? "Player"
+        : "Joueur"
+      : isEnglish.value
+      ? "Player 1"
+      : "Joueur 1"
+
+    const usePlayer2Name = !defaultPlayer2Names.includes(player2Name)
+      ? player2Name
+      : isVsComputerMode
+      ? isEnglish.value
+        ? "Computer"
+        : "Ordinateur"
+      : isEnglish.value
+      ? "Player 2"
+      : "Joueur 2"
+
     gameState.value = {
       players: [
         {
           id: 0,
-          name: isEnglish.value ? "Player" : "Joueur",
+          name: usePlayer1Name,
           totalScore: 0,
           isQualified: false,
           isComputer: false,
         },
         {
           id: 1,
-          name: isEnglish.value ? "Computer" : "Ordinateur",
+          name: usePlayer2Name,
           totalScore: 0,
           isQualified: false,
-          isComputer: true,
+          isComputer: player2IsComputer, // Preserve the computer/human mode
         },
       ],
       currentPlayer: 0,
@@ -1183,6 +1310,9 @@ export function useGameStore() {
       bustMessage: "",
       diceHidden: true, // Start with hidden dice
     }
+
+    // Force a refresh of the game state to ensure reactivity
+    refreshGameState()
 
     // Show menu again
     showMenu.value = true
@@ -1211,5 +1341,6 @@ export function useGameStore() {
     setRollCallback,
     showMenu,
     setPlayers,
+    refreshGameState,
   }
 }
