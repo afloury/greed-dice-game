@@ -31,79 +31,16 @@
       </div>
 
       <!-- Settings Modal -->
-      <Teleport to="body">
-        <div
-          v-if="showSettings"
-          class="settings-modal-overlay"
-          @click="closeSettings"
-        >
-          <div class="game-panel settings-modal" @click.stop>
-            <div class="settings-modal-header">
-              <h2>{{ t("settings") }}</h2>
-              <button @click="closeSettings">×</button>
-            </div>
-            <div class="settings-modal-body">
-              <div class="settings-section">
-                <h3 class="text-lg font-medium mb-4">
-                  {{ t("display") }}
-                </h3>
-                <div class="flex items-center justify-between mb-4">
-                  <span>{{ t("darkMode") }}</span>
-                  <button
-                    @click="toggleDarkMode"
-                    class="p-2 rounded-lg font-semibold transition-all duration-200 game-icon-button"
-                  >
-                    {{ isDarkMode ? "☀️" : "🌙" }}
-                  </button>
-                </div>
-                <div class="flex items-center justify-between mb-6">
-                  <span>{{ t("language") }}</span>
-                  <button
-                    @click="toggleLanguage"
-                    class="p-2 rounded-lg font-semibold transition-all duration-200 game-icon-button"
-                  >
-                    {{ isEnglish ? "🇫🇷" : "🇬🇧" }}
-                  </button>
-                </div>
-
-                <h3 class="text-lg font-medium mb-4">
-                  {{ t("sound") }}
-                </h3>
-                <label class="block mb-2">
-                  {{ t("soundEffectsVolume") }}
-                </label>
-                <div class="flex items-center gap-3">
-                  <span>🔈</span>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    v-model="soundVolume"
-                    class="volume-slider"
-                    @input="updateSoundVolume"
-                  />
-                  <span>🔊</span>
-                </div>
-                <div class="volume-value">{{ soundVolume }}%</div>
-
-                <div class="text-center mt-3">
-                  <button
-                    @click="testSound"
-                    class="game-button-secondary test-sound-btn"
-                  >
-                    {{ t("testSound") }}
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div class="settings-modal-footer">
-              <button @click="closeSettings" class="game-button close-btn">
-                {{ t("close") }}
-              </button>
-            </div>
-          </div>
-        </div>
-      </Teleport>
+      <GameSettings
+        :show-settings="showSettings"
+        :is-dark-mode="isDarkMode"
+        :is-english="isEnglish"
+        v-model:sound-volume="soundVolume"
+        @update:show-settings="showSettings = $event"
+        @toggle-dark-mode="toggleDarkMode"
+        @toggle-language="toggleLanguage"
+        @test-sound="testSound"
+      />
 
       <!-- Player Scores -->
       <div class="grid grid-cols-2 gap-4 mb-6">
@@ -148,140 +85,65 @@
       <!-- Game Board -->
       <div class="game-panel p-6 mb-6">
         <!-- Scoring -->
-        <div class="text-center mb-6">
-          <h2 class="text-xl font-bold">
-            {{ t("scoring") }}
-          </h2>
-          <div class="grid grid-cols-2 gap-4 text-left max-w-md mx-auto mt-4">
-            <div class="text-success p-3 rounded-lg scoring-card">
-              <span class="font-medium">{{ t("bankedPoints") }}</span>
-              <span class="ml-2 text-xl font-bold">{{
-                gameState.currentTurnScore
-              }}</span>
-            </div>
-            <div class="p-3 rounded-lg scoring-card">
-              <span class="font-medium">{{ t("rollScore") }}</span>
-              <span class="ml-2 text-xl font-bold">{{
-                gameState.isFirstRoll ? 0 : gameState.lastRollScore
-              }}</span>
-            </div>
-            <div class="text-accent-secondary p-3 rounded-lg scoring-card">
-              <span class="font-medium">{{ t("selected") }}</span>
-              <span class="ml-2 text-xl font-bold">{{
-                gameState.potentialScore
-              }}</span>
-            </div>
-            <div class="text-accent p-3 rounded-lg scoring-card">
-              <span class="font-medium">{{ t("totalAvailable") }}</span>
-              <span class="ml-2 text-xl font-bold">{{
-                gameState.currentTurnScore + gameState.potentialScore
-              }}</span>
-            </div>
-          </div>
-        </div>
+        <GameScoring
+          :current-turn-score="gameState.currentTurnScore"
+          :is-first-roll="gameState.isFirstRoll"
+          :last-roll-score="gameState.lastRollScore"
+          :potential-score="gameState.potentialScore"
+        />
 
         <!-- Dice Area with animation -->
-        <div class="flex justify-center flex-wrap gap-4 mb-6">
-          <div
-            v-for="(die, index) in gameState.dice"
-            :key="index"
-            :class="[
-              'w-16 h-16 md:w-20 md:h-20 rounded-lg flex items-center justify-center text-2xl font-bold transition-all duration-200 die-container',
-              // Dice that are selected
-              die.isSelected ? 'die-selected' : '',
-              // Dice that are locked (banked from previous roll)
-              die.isLocked ? 'die-locked' : '',
-              // Dice that are hidden between turns
-              gameState.diceHidden ? 'die-hidden' : '',
-              // Dice that cannot be selected (not part of a scoring combination)
-              !die.isLocked &&
-              !die.isSelected &&
-              !die.isValidSelection &&
-              !gameState.diceHidden
-                ? 'die-invalid'
-                : '',
-              // Disable during computer turn
-              !isPlayerTurn ? 'cursor-not-allowed opacity-80' : '',
-              // Default style for selectable dice
-              !die.isLocked &&
-              !die.isSelected &&
-              die.isValidSelection &&
-              !gameState.diceHidden &&
-              isPlayerTurn
-                ? 'die-selectable'
-                : '',
-            ]"
-            @click="isPlayerTurn && toggleDieSelection(index)"
+        <DiceDisplay
+          v-if="!gameState.diceHidden"
+          :dice="
+            gameState.dice.map((die) => ({
+              value: die.value,
+              selected: die.isSelected,
+              locked: die.isLocked,
+            }))
+          "
+          :is-rolling="spinningDice.some((spinning) => spinning)"
+          @toggle-die-selection="toggleDieSelection"
+        />
+
+        <div v-else class="dice-placeholder text-center my-8">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="w-16 h-16 mx-auto opacity-50"
           >
-            <template v-if="gameState.diceHidden">
-              <div class="text-center">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="w-8 h-8 mx-auto"
-                >
-                  <path
-                    d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
-                  ></path>
-                  <polyline points="7.5 4.21 12 6.81 16.5 4.21"></polyline>
-                  <polyline points="7.5 19.79 7.5 14.6 3 12"></polyline>
-                  <polyline points="21 12 16.5 14.6 16.5 19.79"></polyline>
-                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
-                </svg>
-              </div>
-            </template>
-            <DiceFace
-              v-else
-              :value="die.value"
-              :is-spinning="spinningDice[index]"
-            />
-          </div>
+            <path
+              d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+            ></path>
+            <polyline points="7.5 4.21 12 6.81 16.5 4.21"></polyline>
+            <polyline points="7.5 19.79 7.5 14.6 3 12"></polyline>
+            <polyline points="21 12 16.5 14.6 16.5 19.79"></polyline>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+          <p class="mt-4 text-accent-secondary">{{ t("rollToStart") }}</p>
         </div>
 
         <!-- Game Controls -->
-        <div class="flex justify-center gap-4 mb-4">
-          <button
-            @click="rollDice"
-            :disabled="!canRoll || !isPlayerTurn"
-            :title="rollDiceButtonTooltip"
-            :class="[
-              'game-button',
-              !canRoll || !isPlayerTurn ? 'disabled' : '',
-            ]"
-          >
-            {{ t("rollDice") }}
-          </button>
-          <button
-            @click="keepScore"
-            :disabled="!canKeepScore || !isPlayerTurn"
-            :class="[
-              'game-button',
-              !canKeepScore || !isPlayerTurn ? 'disabled' : '',
-            ]"
-            :title="keepScoreButtonTooltip"
-          >
-            {{ t("keepScore")
-            }}{{
-              !currentPlayer.isQualified
-                ? t("needPoints", [MIN_QUALIFYING_SCORE])
-                : ""
-            }}
-          </button>
-        </div>
-
-        <!-- Hidden Dice Message -->
-        <div
-          v-if="gameState.diceHidden"
-          class="text-center text-accent-secondary text-sm mt-4 mb-2"
-        >
-          {{ t("rollToStart") }}
-        </div>
+        <DiceControls
+          :is-rolling="spinningDice.some((spinning) => spinning)"
+          :can-roll="canRoll && isPlayerTurn"
+          :is-first-roll="gameState.isFirstRoll"
+          :can-bank="canKeepScore && isPlayerTurn"
+          :current-turn-score="gameState.currentTurnScore"
+          :potential-score="gameState.potentialScore"
+          :roll-button-tooltip="rollDiceButtonTooltip"
+          :bank-button-tooltip="keepScoreButtonTooltip"
+          :is-qualified="currentPlayer.isQualified"
+          :qualification-score="MIN_QUALIFYING_SCORE"
+          @roll-dice="rollDice"
+          @bank-points="keepScore"
+        />
 
         <!-- Bust Message -->
         <div v-if="gameState.isBust" class="text-center mt-4 mb-2">
@@ -367,7 +229,10 @@
 import { useGameStore } from "../composables/useGameStore"
 import { useI18n } from "../i18n"
 import ComputerAI from "./ComputerAI.vue"
-import DiceFace from "./DiceFace.vue"
+import GameSettings from "./GameSettings.vue"
+import GameScoring from "./GameScoring.vue"
+import DiceDisplay from "./DiceDisplay.vue"
+import DiceControls from "./DiceControls.vue"
 import { ref, watch, computed, onMounted, defineProps } from "vue"
 
 // Accept store as a prop
@@ -411,18 +276,16 @@ const toggleSettings = () => {
   }
 }
 
-const closeSettings = () => {
-  showSettings.value = false
-  document.body.classList.remove("modal-open")
-}
-
-// Update sound volume function
-const updateSoundVolume = () => {
-  // Update volume on the sound object if it exists
-  if (diceSound) {
-    diceSound.volume = soundVolume.value / 100
+// Watch for sound volume changes
+watch(
+  () => soundVolume.value,
+  (newVolume) => {
+    // Update volume on the sound object if it exists
+    if (diceSound) {
+      diceSound.volume = newVolume / 100
+    }
   }
-}
+)
 
 // Function to play dice sound
 const playDiceSound = () => {
@@ -602,90 +465,6 @@ const testSound = () => {
 </script>
 
 <style scoped>
-/* Add this to your style section */
-.settings-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.settings-modal {
-  width: 90%;
-  max-width: 450px;
-  overflow: hidden;
-}
-
-.settings-modal-header {
-  padding: 1rem;
-  border-bottom: 1px solid var(--color-border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.settings-modal-header h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin: 0;
-}
-
-.settings-modal-header button {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0 0.5rem;
-  line-height: 1;
-}
-
-.settings-modal-body {
-  padding: 1.5rem;
-}
-
-.settings-section {
-  margin-bottom: 1.5rem;
-}
-
-.volume-slider {
-  width: 100%;
-  height: 8px;
-  background-color: var(--color-border);
-  border-radius: 4px;
-  appearance: none;
-  cursor: pointer;
-}
-
-.volume-slider::-webkit-slider-thumb {
-  appearance: none;
-  width: 18px;
-  height: 18px;
-  background-color: var(--color-accent);
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.volume-value {
-  text-align: center;
-  margin-top: 0.5rem;
-  font-weight: 500;
-}
-
-.settings-modal-footer {
-  padding: 1rem;
-  border-top: 1px solid var(--color-border);
-  display: flex;
-  justify-content: flex-end;
-}
-
 /* Game-specific styles */
 .game-background {
   background-color: var(--color-bg);
@@ -760,54 +539,6 @@ const testSound = () => {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.25);
 }
 
-.scoring-card {
-  background-color: rgba(0, 0, 0, 0.15);
-  border: 1px solid var(--color-border);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.die-container {
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 6px var(--color-shadow);
-}
-
-.die-selected {
-  background-color: rgba(92, 184, 228, 0.1) !important;
-  box-shadow: 0 0 12px rgba(92, 184, 228, 0.4);
-  border: 2px solid var(--color-accent-secondary);
-  transform: translateY(-2px);
-}
-
-.die-locked {
-  background-color: rgba(68, 207, 108, 0.1) !important;
-  box-shadow: 0 0 12px rgba(68, 207, 108, 0.3);
-  border: 2px solid var(--color-success);
-  transform: translateY(-1px);
-}
-
-.die-hidden {
-  background-color: rgba(45, 55, 72, 0.2) !important;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
-  opacity: 0.6;
-}
-
-.die-invalid {
-  background-color: rgba(45, 55, 72, 0.15) !important;
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
-  opacity: 0.5;
-}
-
-.die-selectable {
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid var(--color-border);
-  box-shadow: 0 3px 6px var(--color-shadow);
-}
-
-.die-selectable:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px var(--color-shadow);
-}
-
 .game-button.disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -874,10 +605,5 @@ const testSound = () => {
 
 .text-danger {
   color: var(--color-danger);
-}
-
-/* Add this to body when modal is open to prevent scrolling */
-:global(.modal-open) {
-  overflow: hidden;
 }
 </style>
