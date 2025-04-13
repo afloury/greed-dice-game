@@ -1,21 +1,31 @@
 @import "tailwindcss";
 
 :root {
-  --color-bg: #f3f4f6;
+  --color-bg: #f5f6fa;
   --color-card: #ffffff;
-  --color-text: #1f2937;
-  --color-text-secondary: #4b5563;
+  --color-text: #333340;
+  --color-text-secondary: #6b6b80;
   --color-border: #e5e7eb;
-  --color-accent: #3b82f6;
+  --color-accent: #f7567c;
+  --color-accent-secondary: #3185fc;
+  --color-success: #2fa84f;
+  --color-warning: #f3aa18;
+  --color-danger: #e63946;
+  --color-shadow: rgba(0, 0, 0, 0.15);
 }
 
 .dark {
-  --color-bg: #1f2937;
-  --color-card: #111827;
-  --color-text: #f3f4f6;
-  --color-text-secondary: #d1d5db;
-  --color-border: #374151;
-  --color-accent: #60a5fa;
+  --color-bg: #1a1c2f;
+  --color-card: #2a2c42;
+  --color-text: #eaedf8;
+  --color-text-secondary: #a2a8c7;
+  --color-border: #3d405c;
+  --color-accent: #f7567c;
+  --color-accent-secondary: #5cb8e4;
+  --color-success: #44cf6c;
+  --color-warning: #ffb627;
+  --color-danger: #ff5a5a;
+  --color-shadow: rgba(0, 0, 0, 0.3);
 }
 
 body {
@@ -25,4 +35,63 @@ body {
   background-color: var(--color-bg);
   color: var(--color-text);
   transition: background-color 0.3s ease, color 0.3s ease;
+  background-image: radial-gradient(
+      circle at 10% 20%,
+      rgba(90, 92, 152, 0.05) 0%,
+      rgba(0, 0, 0, 0) 80%
+    ),
+    radial-gradient(
+      circle at 90% 80%,
+      rgba(247, 86, 124, 0.05) 0%,
+      rgba(0, 0, 0, 0) 80%
+    );
+  font-family: "Montserrat", sans-serif;
+}
+
+.dark body {
+  background-image: radial-gradient(
+      circle at 10% 20%,
+      rgba(90, 92, 152, 0.1) 0%,
+      rgba(0, 0, 0, 0) 80%
+    ),
+    radial-gradient(
+      circle at 90% 80%,
+      rgba(247, 86, 124, 0.1) 0%,
+      rgba(0, 0, 0, 0) 80%
+    );
+}
+
+/* Game UI specific utilities */
+.game-panel {
+  background-color: var(--color-card);
+  border-radius: 12px;
+  box-shadow: 0 8px 20px var(--color-shadow), 0 6px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+.game-button {
+  background-color: var(--color-accent);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.game-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+}
+
+.game-button:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.game-button-secondary {
+  background-color: var(--color-accent-secondary);
 }

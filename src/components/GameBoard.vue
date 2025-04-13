@@ -1,44 +1,28 @@
 <template>
-  <div
-    class="min-h-screen p-4"
-    :class="{ 'bg-gray-100': !isDarkMode, 'bg-gray-900': isDarkMode }"
-  >
+  <div class="min-h-screen p-4 game-background">
     <div class="max-w-4xl mx-auto">
       <!-- Game Header -->
-      <div
-        class="rounded-lg shadow-lg p-4 mb-4"
-        :class="{ 'bg-white': !isDarkMode, 'bg-gray-800': isDarkMode }"
-      >
-        <h1 class="text-3xl font-bold text-center mb-4">
+      <div class="game-panel p-6 mb-6">
+        <h1 class="text-3xl font-bold text-center mb-4 game-title">
           {{ isEnglish ? "10,000 Dice Game" : "Jeu de Dés 10,000" }}
         </h1>
         <div class="flex justify-between items-center">
           <div class="text-lg">
             {{ isEnglish ? "Current Phase:" : "Phase Actuelle:" }}
-            <span class="font-semibold">{{
+            <span class="font-semibold text-accent">{{
               translateGamePhase(gameState.gamePhase)
             }}</span>
           </div>
           <div class="flex gap-2">
             <button
               @click="toggleSettings"
-              class="p-2 rounded-lg font-semibold transition-all duration-200"
-              :class="[
-                isDarkMode
-                  ? 'bg-gray-600 text-white hover:bg-gray-500'
-                  : 'bg-gray-500 text-white hover:bg-gray-600',
-              ]"
+              class="p-2 rounded-lg font-semibold transition-all duration-200 game-icon-button"
             >
               ⚙️
             </button>
             <button
               @click="handleResetGame"
-              class="px-4 py-2 rounded-lg font-semibold transition-all duration-200"
-              :class="[
-                isDarkMode
-                  ? 'bg-gray-600 text-white hover:bg-gray-500'
-                  : 'bg-gray-500 text-white hover:bg-gray-600',
-              ]"
+              class="px-4 py-2 rounded-lg font-semibold transition-all duration-200 game-button-secondary"
             >
               {{ isEnglish ? "New Game" : "Nouvelle Partie" }}
             </button>
@@ -53,11 +37,7 @@
           class="settings-modal-overlay"
           @click="closeSettings"
         >
-          <div
-            class="settings-modal"
-            :class="{ 'dark-mode': isDarkMode }"
-            @click.stop
-          >
+          <div class="game-panel settings-modal" @click.stop>
             <div class="settings-modal-header">
               <h2>{{ isEnglish ? "Settings" : "Paramètres" }}</h2>
               <button @click="closeSettings">×</button>
@@ -71,12 +51,7 @@
                   <span>{{ isEnglish ? "Dark Mode" : "Mode Sombre" }}</span>
                   <button
                     @click="toggleDarkMode"
-                    class="p-2 rounded-lg font-semibold transition-all duration-200"
-                    :class="[
-                      isDarkMode
-                        ? 'bg-yellow-500 text-white hover:bg-yellow-400'
-                        : 'bg-gray-700 text-white hover:bg-gray-600',
-                    ]"
+                    class="p-2 rounded-lg font-semibold transition-all duration-200 game-icon-button"
                   >
                     {{ isDarkMode ? "☀️" : "🌙" }}
                   </button>
@@ -85,12 +60,7 @@
                   <span>{{ isEnglish ? "Language" : "Langue" }}</span>
                   <button
                     @click="toggleLanguage"
-                    class="p-2 rounded-lg font-semibold transition-all duration-200"
-                    :class="[
-                      isDarkMode
-                        ? 'bg-gray-600 text-white hover:bg-gray-500'
-                        : 'bg-gray-500 text-white hover:bg-gray-600',
-                    ]"
+                    class="p-2 rounded-lg font-semibold transition-all duration-200 game-icon-button"
                   >
                     {{ isEnglish ? "🇫🇷" : "🇬🇧" }}
                   </button>
@@ -121,14 +91,17 @@
                 <div class="volume-value">{{ soundVolume }}%</div>
 
                 <div class="text-center mt-3">
-                  <button @click="testSound" class="test-sound-btn">
+                  <button
+                    @click="testSound"
+                    class="game-button-secondary test-sound-btn"
+                  >
                     {{ isEnglish ? "Test Sound" : "Tester le Son" }}
                   </button>
                 </div>
               </div>
             </div>
             <div class="settings-modal-footer">
-              <button @click="closeSettings" class="close-btn">
+              <button @click="closeSettings" class="game-button close-btn">
                 {{ isEnglish ? "Close" : "Fermer" }}
               </button>
             </div>
@@ -137,29 +110,30 @@
       </Teleport>
 
       <!-- Player Scores -->
-      <div class="grid grid-cols-2 gap-4 mb-4">
+      <div class="grid grid-cols-2 gap-4 mb-6">
         <div
           v-for="player in gameState.players"
           :key="player.id"
           :class="[
-            'rounded-lg shadow-lg p-4',
-            currentPlayer.id === player.id ? 'ring-2 ring-blue-500' : '',
-            isDarkMode ? 'bg-gray-800' : 'bg-white',
+            'game-panel p-4',
+            currentPlayer.id === player.id ? 'current-player' : '',
           ]"
         >
           <h2 class="text-xl font-bold mb-2">{{ player.name }}</h2>
           <div class="text-lg">
             {{ isEnglish ? "Total Score:" : "Score Total:" }}
-            <span class="font-semibold">{{ player.totalScore }}</span>
+            <span class="font-semibold text-accent">{{
+              player.totalScore
+            }}</span>
           </div>
-          <div v-if="!player.isQualified" class="text-sm text-red-500">
+          <div v-if="!player.isQualified" class="text-sm text-danger">
             {{
               isEnglish
                 ? `Needs ${MIN_QUALIFYING_SCORE} points to qualify`
                 : `Besoin de ${MIN_QUALIFYING_SCORE} points pour se qualifier`
             }}
           </div>
-          <div v-else class="text-sm text-green-500">
+          <div v-else class="text-sm text-success">
             {{ isEnglish ? "Qualified" : "Qualifié" }}
           </div>
         </div>
@@ -169,41 +143,42 @@
       <ComputerAI ref="computerAIRef" />
 
       <!-- Game Board -->
-      <div
-        class="rounded-lg shadow-lg p-4 mb-4"
-        :class="{ 'bg-white': !isDarkMode, 'bg-gray-800': isDarkMode }"
-      >
+      <div class="game-panel p-6 mb-6">
         <!-- Scoring -->
-        <div class="text-center mb-4">
+        <div class="text-center mb-6">
           <h2 class="text-xl font-bold">
             {{ isEnglish ? "Scoring" : "Points" }}
           </h2>
-          <div class="grid grid-cols-2 gap-2 text-left max-w-md mx-auto mt-2">
-            <div class="text-green-500">
+          <div class="grid grid-cols-2 gap-4 text-left max-w-md mx-auto mt-4">
+            <div class="text-success p-3 rounded-lg scoring-card">
               <span class="font-medium">{{
                 isEnglish ? "Banked Points:" : "Points en Banque:"
               }}</span>
-              <span class="ml-2">{{ gameState.currentTurnScore }}</span>
+              <span class="ml-2 text-xl font-bold">{{
+                gameState.currentTurnScore
+              }}</span>
             </div>
-            <div>
+            <div class="p-3 rounded-lg scoring-card">
               <span class="font-medium">{{
                 isEnglish ? "Roll score:" : "Score du Lancer:"
               }}</span>
-              <span class="ml-2">{{
+              <span class="ml-2 text-xl font-bold">{{
                 gameState.isFirstRoll ? 0 : gameState.lastRollScore
               }}</span>
             </div>
-            <div class="text-blue-500">
+            <div class="text-accent-secondary p-3 rounded-lg scoring-card">
               <span class="font-medium">{{
                 isEnglish ? "Selected:" : "Sélectionné:"
               }}</span>
-              <span class="ml-2">{{ gameState.potentialScore }}</span>
+              <span class="ml-2 text-xl font-bold">{{
+                gameState.potentialScore
+              }}</span>
             </div>
-            <div class="text-indigo-600 font-medium">
+            <div class="text-accent p-3 rounded-lg scoring-card">
               <span class="font-medium">{{
                 isEnglish ? "Total Available:" : "Total Disponible:"
               }}</span>
-              <span class="ml-2">{{
+              <span class="ml-2 text-xl font-bold">{{
                 gameState.currentTurnScore + gameState.potentialScore
               }}</span>
             </div>
@@ -211,38 +186,24 @@
         </div>
 
         <!-- Dice Area with animation -->
-        <div class="flex justify-center gap-4 mb-4">
+        <div class="flex justify-center flex-wrap gap-4 mb-6">
           <div
             v-for="(die, index) in gameState.dice"
             :key="index"
             :class="[
-              'w-12 h-12 md:w-16 md:h-16 rounded-lg shadow-lg flex items-center justify-center text-2xl font-bold transition-all duration-200',
+              'w-16 h-16 md:w-20 md:h-20 rounded-lg flex items-center justify-center text-2xl font-bold transition-all duration-200 die-container',
               // Dice that are selected
-              die.isSelected
-                ? isDarkMode
-                  ? 'bg-blue-800 ring-2 ring-blue-400 text-blue-100'
-                  : 'bg-blue-100 ring-2 ring-blue-500 text-blue-800'
-                : '',
+              die.isSelected ? 'die-selected' : '',
               // Dice that are locked (banked from previous roll)
-              die.isLocked
-                ? isDarkMode
-                  ? 'bg-green-800 border-2 border-green-400 cursor-not-allowed text-green-100'
-                  : 'bg-green-100 border-2 border-green-500 cursor-not-allowed text-green-800'
-                : '',
+              die.isLocked ? 'die-locked' : '',
               // Dice that are hidden between turns
-              gameState.diceHidden
-                ? isDarkMode
-                  ? 'bg-gray-700 cursor-not-allowed text-gray-400'
-                  : 'bg-gray-300 cursor-not-allowed text-gray-500'
-                : '',
+              gameState.diceHidden ? 'die-hidden' : '',
               // Dice that cannot be selected (not part of a scoring combination)
               !die.isLocked &&
               !die.isSelected &&
               !die.isValidSelection &&
               !gameState.diceHidden
-                ? isDarkMode
-                  ? 'bg-gray-800 opacity-70 cursor-not-allowed text-gray-400'
-                  : 'bg-gray-100 opacity-70 cursor-not-allowed text-gray-500'
+                ? 'die-invalid'
                 : '',
               // Disable during computer turn
               !isPlayerTurn ? 'cursor-not-allowed opacity-80' : '',
@@ -252,9 +213,7 @@
               die.isValidSelection &&
               !gameState.diceHidden &&
               isPlayerTurn
-                ? isDarkMode
-                  ? 'bg-gray-600 text-white cursor-pointer hover:bg-gray-500'
-                  : 'bg-white cursor-pointer hover:bg-blue-50'
+                ? 'die-selectable'
                 : '',
             ]"
             @click="isPlayerTurn && toggleDieSelection(index)"
@@ -269,7 +228,7 @@
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  class="w-6 h-6 mx-auto"
+                  class="w-8 h-8 mx-auto"
                 >
                   <path
                     d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
@@ -297,10 +256,8 @@
             :disabled="!canRoll || !isPlayerTurn"
             :title="rollDiceButtonTooltip"
             :class="[
-              'px-4 py-2 rounded-lg font-semibold transition-all duration-200',
-              canRoll && isPlayerTurn
-                ? 'bg-blue-500 text-white hover:bg-blue-600'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed',
+              'game-button',
+              !canRoll || !isPlayerTurn ? 'disabled' : '',
             ]"
           >
             {{ isEnglish ? "Roll Dice" : "Lancer les Dés" }}
@@ -309,10 +266,8 @@
             @click="keepScore"
             :disabled="!canKeepScore || !isPlayerTurn"
             :class="[
-              'px-4 py-2 rounded-lg font-semibold transition-all duration-200',
-              canKeepScore && isPlayerTurn
-                ? 'bg-blue-500 text-white hover:bg-blue-600'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed',
+              'game-button',
+              !canKeepScore || !isPlayerTurn ? 'disabled' : '',
             ]"
             :title="keepScoreButtonTooltip"
           >
@@ -330,7 +285,7 @@
         <!-- Hidden Dice Message -->
         <div
           v-if="gameState.diceHidden"
-          class="text-center text-gray-500 text-sm mt-4 mb-2"
+          class="text-center text-accent-secondary text-sm mt-4 mb-2"
         >
           {{
             isEnglish
@@ -341,14 +296,7 @@
 
         <!-- Bust Message -->
         <div v-if="gameState.isBust" class="text-center mt-4 mb-2">
-          <div
-            class="p-3 rounded relative"
-            role="alert"
-            :class="{
-              'bg-red-100 border border-red-400 text-red-700': !isDarkMode,
-              'bg-red-900 border border-red-800 text-red-200': isDarkMode,
-            }"
-          >
+          <div class="p-3 rounded relative bust-message" role="alert">
             <span class="block sm:inline text-lg font-bold">{{
               translateBustMessage(gameState.bustMessage)
             }}</span>
@@ -364,16 +312,7 @@
 
         <!-- Qualification Warning Message -->
         <div v-if="showQualificationWarning" class="text-center mt-4 mb-2">
-          <div
-            class="p-3 rounded relative"
-            role="alert"
-            :class="{
-              'bg-yellow-100 border border-yellow-400 text-yellow-800':
-                !isDarkMode,
-              'bg-yellow-900 border border-yellow-700 text-yellow-200':
-                isDarkMode,
-            }"
-          >
+          <div class="p-3 rounded relative qualification-warning" role="alert">
             <span class="block sm:inline text-lg font-bold">
               {{
                 isEnglish ? "Qualification Required!" : "Qualification Requise!"
@@ -392,21 +331,10 @@
 
         <!-- Dice Legend -->
         <div
-          class="mt-4 text-xs grid grid-cols-2 gap-2 max-w-md mx-auto"
-          :class="{
-            'text-gray-600': !isDarkMode,
-            'text-gray-300': isDarkMode,
-          }"
+          class="mt-6 p-3 text-xs grid grid-cols-2 gap-2 max-w-md mx-auto rounded-lg legend-panel"
         >
           <div class="flex items-center">
-            <div
-              class="w-4 h-4 border mr-1"
-              :class="[
-                isDarkMode
-                  ? 'bg-gray-600 border-gray-500'
-                  : 'bg-white border-gray-300',
-              ]"
-            ></div>
+            <div class="w-4 h-4 mr-1 die-sample selectable-sample"></div>
             <span>{{
               isEnglish
                 ? "Selectable (scores points)"
@@ -414,25 +342,11 @@
             }}</span>
           </div>
           <div class="flex items-center">
-            <div
-              class="w-4 h-4 ring-1 mr-1"
-              :class="[
-                isDarkMode
-                  ? 'bg-blue-800 ring-blue-400 text-blue-100'
-                  : 'bg-blue-100 ring-blue-500',
-              ]"
-            ></div>
+            <div class="w-4 h-4 mr-1 die-sample selected-sample"></div>
             <span>{{ isEnglish ? "Selected" : "Sélectionné" }}</span>
           </div>
           <div class="flex items-center">
-            <div
-              class="w-4 h-4 border-2 mr-1"
-              :class="[
-                isDarkMode
-                  ? 'bg-green-800 border-green-400'
-                  : 'bg-green-100 border-green-500',
-              ]"
-            ></div>
+            <div class="w-4 h-4 mr-1 die-sample locked-sample"></div>
             <span>{{
               isEnglish
                 ? "Locked (banked points)"
@@ -441,10 +355,7 @@
           </div>
           <div class="flex items-center">
             <div
-              class="w-4 h-4 opacity-70 mr-1"
-              :class="[
-                isDarkMode ? 'bg-gray-800 text-gray-400' : 'bg-gray-100',
-              ]"
+              class="w-4 h-4 opacity-70 mr-1 die-sample invalid-sample"
             ></div>
             <span>{{
               isEnglish ? "Not scorable" : "Non comptabilisable"
@@ -454,15 +365,12 @@
       </div>
 
       <!-- Game Rules -->
-      <div
-        class="rounded-lg shadow-lg p-4 mb-4"
-        :class="{ 'bg-white': !isDarkMode, 'bg-gray-800': isDarkMode }"
-      >
-        <h2 class="text-xl font-bold mb-2 text-center">
+      <div class="game-panel p-6 mb-6">
+        <h2 class="text-xl font-bold mb-4 text-center">
           {{ isEnglish ? "Scoring Rules" : "Règles de Scoring" }}
         </h2>
-        <div class="grid grid-cols-2 gap-2">
-          <div>
+        <div class="grid grid-cols-2 gap-4">
+          <div class="rules-card p-3 rounded-lg">
             <ul class="list-disc pl-5">
               <li>
                 {{
@@ -486,7 +394,7 @@
               </li>
             </ul>
           </div>
-          <div>
+          <div class="rules-card p-3 rounded-lg">
             <ul class="list-disc pl-5">
               <li>
                 {{
@@ -519,51 +427,6 @@
             </ul>
           </div>
         </div>
-
-        <!-- Exact 10,000 Rule -->
-        <div
-          class="mt-4 p-3 rounded relative"
-          :class="{
-            'bg-yellow-100 border border-yellow-400 text-yellow-700':
-              !isDarkMode,
-            'bg-yellow-900 border border-yellow-700 text-yellow-200':
-              isDarkMode,
-          }"
-        >
-          <span class="block sm:inline font-semibold">
-            {{ isEnglish ? "Exact 10,000 Rule:" : "Règle des 10,000 Exacts:" }}
-          </span>
-          <p class="text-sm">
-            {{
-              isEnglish
-                ? "You must score exactly 10,000 points to win. If you exceed 10,000 points, you bust and lose all points accumulated in that turn."
-                : "Vous devez marquer exactement 10,000 points pour gagner. Si vous dépassez 10,000 points, vous échouez et perdez tous les points accumulés durant ce tour."
-            }}
-          </p>
-        </div>
-      </div>
-
-      <!-- Game Status -->
-      <div
-        v-if="gameState.isGameOver"
-        class="rounded-lg shadow-lg p-4 text-center"
-        :class="{ 'bg-white': !isDarkMode, 'bg-gray-800': isDarkMode }"
-      >
-        <h2 class="text-2xl font-bold text-green-500 mb-2">
-          {{ isEnglish ? "Game Over!" : "Partie Terminée!" }}
-        </h2>
-        <p class="text-lg">
-          {{
-            gameState.players.find((p) => p.totalScore === 10000)?.name ||
-            currentPlayer.name
-          }}
-          {{
-            isEnglish
-              ? "wins by reaching exactly"
-              : "gagne en atteignant exactement"
-          }}
-          {{ isEnglish ? "10,000 points!" : "10,000 points!" }}
-        </p>
       </div>
     </div>
   </div>
@@ -809,7 +672,8 @@ const testSound = () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -819,27 +683,15 @@ const testSound = () => {
 .settings-modal {
   width: 90%;
   max-width: 450px;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   overflow: hidden;
-}
-
-.settings-modal.dark-mode {
-  background-color: #1f2937;
-  color: white;
 }
 
 .settings-modal-header {
   padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--color-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.dark-mode .settings-modal-header {
-  border-bottom-color: #374151;
 }
 
 .settings-modal-header h2 {
@@ -868,23 +720,20 @@ const testSound = () => {
 .volume-slider {
   width: 100%;
   height: 8px;
-  background-color: #e5e7eb;
+  background-color: var(--color-border);
   border-radius: 4px;
   appearance: none;
   cursor: pointer;
 }
 
-.dark-mode .volume-slider {
-  background-color: #4b5563;
-}
-
 .volume-slider::-webkit-slider-thumb {
   appearance: none;
-  width: 16px;
-  height: 16px;
-  background-color: #3b82f6;
+  width: 18px;
+  height: 18px;
+  background-color: var(--color-accent);
   border-radius: 50%;
   cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .volume-value {
@@ -893,61 +742,201 @@ const testSound = () => {
   font-weight: 500;
 }
 
-.test-sound-btn {
-  padding: 0.5rem 1rem;
-  background-color: #4b5563;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.test-sound-btn:hover {
-  background-color: #374151;
-}
-
-.dark-mode .test-sound-btn {
-  background-color: #6b7280;
-}
-
-.dark-mode .test-sound-btn:hover {
-  background-color: #4b5563;
-}
-
 .settings-modal-footer {
   padding: 1rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--color-border);
   display: flex;
   justify-content: flex-end;
 }
 
-.dark-mode .settings-modal-footer {
-  border-top-color: #374151;
+/* Game-specific styles */
+.game-background {
+  background-color: var(--color-bg);
+  background-image: radial-gradient(
+      circle at 10% 20%,
+      rgba(90, 92, 152, 0.1) 0%,
+      rgba(0, 0, 0, 0) 80%
+    ),
+    radial-gradient(
+      circle at 90% 80%,
+      rgba(247, 86, 124, 0.1) 0%,
+      rgba(0, 0, 0, 0) 80%
+    );
 }
 
-.close-btn {
-  padding: 0.5rem 1rem;
-  background-color: #4b5563;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background-color 0.2s;
+.game-title {
+  background: linear-gradient(
+    90deg,
+    var(--color-accent),
+    var(--color-accent-secondary)
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-shadow: none;
 }
 
-.close-btn:hover {
-  background-color: #374151;
+.dark .game-title {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-.dark-mode .close-btn {
-  background-color: #6b7280;
+.current-player {
+  border: 2px solid var(--color-accent);
+  box-shadow: 0 0 15px rgba(247, 86, 124, 0.5);
+  position: relative;
+  overflow: hidden;
 }
 
-.dark-mode .close-btn:hover {
-  background-color: #4b5563;
+.current-player::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(
+    90deg,
+    var(--color-accent),
+    var(--color-accent-secondary)
+  );
+  z-index: 1;
+}
+
+.game-icon-button {
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  font-size: 1.2rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.game-icon-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.25);
+}
+
+.scoring-card {
+  background-color: rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--color-border);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.die-container {
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px var(--color-shadow);
+}
+
+.die-selected {
+  background-color: rgba(92, 184, 228, 0.1) !important;
+  box-shadow: 0 0 12px rgba(92, 184, 228, 0.4);
+  border: 2px solid var(--color-accent-secondary);
+  transform: translateY(-2px);
+}
+
+.die-locked {
+  background-color: rgba(68, 207, 108, 0.1) !important;
+  box-shadow: 0 0 12px rgba(68, 207, 108, 0.3);
+  border: 2px solid var(--color-success);
+  transform: translateY(-1px);
+}
+
+.die-hidden {
+  background-color: rgba(45, 55, 72, 0.2) !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+  opacity: 0.6;
+}
+
+.die-invalid {
+  background-color: rgba(45, 55, 72, 0.15) !important;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+  opacity: 0.5;
+}
+
+.die-selectable {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 3px 6px var(--color-shadow);
+}
+
+.die-selectable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px var(--color-shadow);
+}
+
+.game-button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.bust-message {
+  background-color: rgba(255, 90, 90, 0.15);
+  border: 1px solid var(--color-danger);
+  color: var(--color-danger);
+}
+
+.qualification-warning {
+  background-color: rgba(255, 182, 39, 0.15);
+  border: 1px solid var(--color-warning);
+  color: var(--color-warning);
+}
+
+.legend-panel {
+  background-color: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--color-border);
+}
+
+.die-sample {
+  border-radius: 2px;
+}
+
+.selectable-sample {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--color-border);
+}
+
+.selected-sample {
+  background-color: rgba(92, 184, 228, 0.2);
+  border: 1px solid var(--color-accent-secondary);
+}
+
+.locked-sample {
+  background-color: rgba(68, 207, 108, 0.2);
+  border: 1px solid var(--color-success);
+}
+
+.invalid-sample {
+  background-color: rgba(45, 55, 72, 0.3);
+}
+
+.rules-card {
+  background-color: rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--color-border);
+}
+
+.text-accent {
+  color: var(--color-accent);
+}
+
+.text-accent-secondary {
+  color: var(--color-accent-secondary);
+}
+
+.text-success {
+  color: var(--color-success);
+}
+
+.text-danger {
+  color: var(--color-danger);
 }
 
 /* Add this to body when modal is open to prevent scrolling */

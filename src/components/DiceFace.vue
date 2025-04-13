@@ -1,5 +1,8 @@
 <template>
-  <div class="dice-face" :class="[`dice-${value}`]">
+  <div
+    class="dice-face"
+    :class="[`dice-${value}`, { 'is-spinning': isSpinning }]"
+  >
     <!-- Dice dot layouts -->
     <div v-if="value === 1" class="dot center-dot"></div>
 
@@ -45,6 +48,7 @@
 <script setup lang="ts">
 defineProps<{
   value: number
+  isSpinning?: boolean
 }>()
 </script>
 
@@ -57,6 +61,35 @@ defineProps<{
   flex-wrap: wrap;
   justify-content: center;
   align-items: center;
+  background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 100%);
+  border-radius: 15%;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2), inset 0 -1px 0 rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.dice-face:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.25), inset 0 -1px 0 rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.is-spinning {
+  animation: roll 0.75s ease-out;
+}
+
+@keyframes roll {
+  0% {
+    transform: translateY(-15px);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateY(5px) scale(1.1);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
 }
 
 .dot {
@@ -64,10 +97,9 @@ defineProps<{
   width: 20%;
   height: 20%;
   border-radius: 50%;
-  background-color: currentColor;
-  /* Add a subtle shadow to give depth to the dots */
-  box-shadow: inset 0 3px 4px rgba(0, 0, 0, 0.3),
-    0 0 2px rgba(255, 255, 255, 0.5);
+  background: radial-gradient(circle at 30% 30%, #ff4d6d 0%, #c9184a 100%);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.4),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.3);
 }
 
 /* Dot positions */
