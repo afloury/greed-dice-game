@@ -82,6 +82,26 @@
       <!-- Computer AI Status -->
       <ComputerAI ref="computerAIRef" />
 
+      <!-- Game Over Screen -->
+      <div v-if="gameState.isGameOver" class="game-over-screen">
+        <div class="game-over-content">
+          <h2 class="text-4xl font-bold mb-4">{{ t("phases.Game Over") }}</h2>
+          <p class="text-2xl mb-6">
+            <span class="font-bold">{{ getWinnerName() }}</span>
+            {{ t("wonTheGame") }}!
+          </p>
+          <p class="text-xl mb-8">
+            {{ t("finalScore") }}: {{ getWinnerScore() }}
+          </p>
+          <button
+            @click="handleResetGame"
+            class="px-6 py-3 rounded-lg font-semibold text-lg transition-all duration-200 game-button-primary"
+          >
+            {{ t("playAgain") }}
+          </button>
+        </div>
+      </div>
+
       <!-- Game Board -->
       <div class="game-panel p-6 mb-6">
         <!-- Scoring -->
@@ -223,6 +243,9 @@
       </div>
     </div>
   </div>
+
+  <!-- Dev Panel - Only visible in development mode -->
+  <!-- <DevPanel /> -->
 </template>
 
 <script setup lang="ts">
@@ -233,6 +256,7 @@ import GameSettings from "./GameSettings.vue"
 import GameScoring from "./GameScoring.vue"
 import DiceDisplay from "./DiceDisplay.vue"
 import DiceControls from "./DiceControls.vue"
+import DevPanel from "./DevPanel.vue"
 import { ref, watch, computed, onMounted, defineProps } from "vue"
 
 // Accept store as a prop
@@ -463,6 +487,22 @@ function handleResetGame() {
 const testSound = () => {
   playDiceSound()
 }
+
+// Function to get the winner's name
+const getWinnerName = () => {
+  const winner = gameState.value.players.find(
+    (player) => player.totalScore === 10000
+  )
+  return winner ? winner.name : ""
+}
+
+// Function to get the winner's score
+const getWinnerScore = () => {
+  const winner = gameState.value.players.find(
+    (player) => player.totalScore === 10000
+  )
+  return winner ? winner.totalScore : 0
+}
 </script>
 
 <style scoped>
@@ -591,5 +631,41 @@ const testSound = () => {
 
 .text-danger {
   color: var(--color-danger);
+}
+
+.game-over-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.game-over-content {
+  background-color: var(--color-card);
+  border: 2px solid var(--color-accent);
+  border-radius: 16px;
+  padding: 2rem;
+  text-align: center;
+  max-width: 90%;
+  width: 500px;
+  box-shadow: 0 0 30px rgba(247, 86, 124, 0.5);
+  animation: pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes pop-in {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 </style>

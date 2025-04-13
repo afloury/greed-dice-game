@@ -638,8 +638,11 @@ export function useGameStore() {
       gameState.value.gamePhase = "NORMAL"
     }
 
-    // Player wins only if they reach exactly 10,000 points
+    // Player wins when they reach exactly 10,000 points
     if (player.totalScore === WINNING_SCORE) {
+      console.log(
+        `${player.name} has reached exactly ${WINNING_SCORE} points and wins!`
+      )
       gameState.value.isGameOver = true
       gameState.value.gamePhase = "END_GAME"
     }
@@ -1340,5 +1343,7 @@ export function useGameStore() {
     showMenu,
     setPlayers,
     refreshGameState,
+    calculateRollScore,
+    calculatePotentialScore,
   }
 }

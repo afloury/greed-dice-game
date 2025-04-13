@@ -16,6 +16,10 @@ export default {
   newGame: "Nouvelle Partie",
   settings: "Paramètres",
   close: "Fermer",
+  playAgain: "Jouer à Nouveau",
+  wonTheGame: "a gagné la partie",
+  finalScore: "Score Final",
+  devPanel: "Panneau Développeur",
 
   // Settings
   display: "Affichage",

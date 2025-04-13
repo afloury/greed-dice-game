@@ -16,6 +16,10 @@ export default {
   newGame: "New Game",
   settings: "Settings",
   close: "Close",
+  playAgain: "Play Again",
+  wonTheGame: "won the game",
+  finalScore: "Final Score",
+  devPanel: "Developer Panel",
 
   // Settings
   display: "Display",
