@@ -1,4 +1,4 @@
-import { ref, computed } from "vue"
+import { ref, computed, watch } from "vue"
 import type { GameState } from "../types/game"
 import { useI18n } from "../i18n"
 
@@ -33,14 +33,14 @@ export function useGameStore() {
     players: [
       {
         id: 0,
-        name: "Player",
+        name: t("player"),
         totalScore: 0,
         isQualified: false,
         isComputer: false,
       },
       {
         id: 1,
-        name: "Computer",
+        name: t("computer"),
         totalScore: 0,
         isQualified: false,
         isComputer: true,
@@ -64,6 +64,63 @@ export function useGameStore() {
     isBust: false,
     bustMessage: "",
     diceHidden: true, // Initially hide dice until first roll
+  })
+
+  // Watch for language changes and update the player names if they're default names
+  watch(isEnglish, () => {
+    // Get player mode
+    const isVsComputerMode =
+      gameState.value.players.length > 1
+        ? gameState.value.players[1].isComputer
+        : true
+
+    // Get current player names
+    const player1Name = gameState.value.players[0].name
+    const player2Name = gameState.value.players[1].name
+
+    // Define expected default names in both languages
+    const defaultPlayerNames = ["Player", "Joueur"]
+    const defaultPlayer1Names = ["Player 1", "Joueur 1"]
+    const defaultPlayer2Names = ["Player 2", "Joueur 2"]
+    const defaultComputerNames = ["Computer", "Ordinateur"]
+
+    // Check if current names are any of the default names
+    const isPlayer1Default =
+      defaultPlayerNames.includes(player1Name) ||
+      defaultPlayer1Names.includes(player1Name)
+
+    const isPlayer2Default =
+      defaultComputerNames.includes(player2Name) ||
+      defaultPlayer2Names.includes(player2Name)
+
+    // Update player names only if they have default names
+    if (isPlayer1Default) {
+      gameState.value.players[0].name = isVsComputerMode
+        ? t("player")
+        : t("player1")
+    }
+
+    if (isPlayer2Default) {
+      gameState.value.players[1].name = isVsComputerMode
+        ? t("computer")
+        : t("player2")
+    }
+
+    // Update the bust message if there is one
+    if (gameState.value.bustMessage) {
+      // If a bust message exists, refresh it with the current language
+      if (gameState.value.currentTurnScore > 0) {
+        gameState.value.bustMessage = t("bustLostPoints", [
+          gameState.value.players[gameState.value.currentPlayer].name,
+          gameState.value.currentTurnScore,
+        ])
+      } else {
+        gameState.value.bustMessage = t("bustGeneric")
+      }
+    }
+
+    // Force a refresh to update UI
+    refreshGameState()
   })
 
   // Force a refresh of the game state (use this to make components re-render)
@@ -155,25 +212,25 @@ export function useGameStore() {
 
   const rollButtonTooltip = computed(() => {
     if (gameState.value.isBust) {
-      return "Cannot roll after busting"
+      return t("cantRollBust")
     }
 
     if (!gameState.value.dice.some((die) => !die.isLocked)) {
-      return "All dice are locked"
+      return t("allDiceLocked")
     }
 
     if (
       !gameState.value.isFirstRoll &&
       !gameState.value.dice.some((die) => die.isSelected)
     ) {
-      return "You must select at least one die before rerolling"
+      return t("mustSelectDie")
     }
 
     if (gameState.value.isFirstRoll) {
-      return "Roll the dice to start your turn"
+      return t("rollToStartTurn")
     }
 
-    return "Roll the dice"
+    return t("rollDiceTooltip")
   })
 
   // Callback for dice rolling animation
@@ -1166,32 +1223,29 @@ export function useGameStore() {
     // Define default names based on game mode
     const isVsComputerMode = player2IsComputer
 
-    // Default names for Player/Computer mode
-    const player1ComputerModeNames = ["Player", "Joueur"]
-    const player2ComputerModeNames = ["Computer", "Ordinateur"]
+    // Define expected default names in both languages
+    const defaultPlayerNames = ["Player", "Joueur"]
+    const defaultPlayer1Names = ["Player 1", "Joueur 1"]
+    const defaultPlayer2Names = ["Player 2", "Joueur 2"]
+    const defaultComputerNames = ["Computer", "Ordinateur"]
 
-    // Default names for Friend mode
-    const player1FriendModeNames = ["Player 1", "Joueur 1"]
-    const player2FriendModeNames = ["Player 2", "Joueur 2"]
+    // Check if current names are any of the default names
+    const isPlayer1Default =
+      defaultPlayerNames.includes(player1Name) ||
+      defaultPlayer1Names.includes(player1Name)
 
-    // Combined list of all possible default names for each player
-    const defaultPlayer1Names = [
-      ...player1ComputerModeNames,
-      ...player1FriendModeNames,
-    ]
-    const defaultPlayer2Names = [
-      ...player2ComputerModeNames,
-      ...player2FriendModeNames,
-    ]
+    const isPlayer2Default =
+      defaultComputerNames.includes(player2Name) ||
+      defaultPlayer2Names.includes(player2Name)
 
     // Use custom names if they exist, otherwise use defaults
-    const usePlayer1Name = !defaultPlayer1Names.includes(player1Name)
+    const usePlayer1Name = !isPlayer1Default
       ? player1Name
       : isVsComputerMode
       ? t("player")
       : t("player1")
 
-    const usePlayer2Name = !defaultPlayer2Names.includes(player2Name)
+    const usePlayer2Name = !isPlayer2Default
       ? player2Name
       : isVsComputerMode
       ? t("computer")

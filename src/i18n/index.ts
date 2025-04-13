@@ -7,9 +7,10 @@ interface TranslationObject {
   [key: string]: string | TranslationObject | Record<string, string>
 }
 
-export function useI18n() {
-  const isEnglish = ref(true)
+// Create a shared state for language preference (singleton pattern)
+const isEnglish = ref(true)
 
+export function useI18n() {
   // Get the current locale
   const locale = computed(() => (isEnglish.value ? "en" : "fr"))
 
