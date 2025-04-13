@@ -1,10 +1,14 @@
 import { ref, computed } from "vue"
 import type { GameState } from "../types/game"
+import { useI18n } from "../i18n"
 
 const MIN_QUALIFYING_SCORE = 1000
 const WINNING_SCORE = 10000
 
 export function useGameStore() {
+  // Initialize i18n
+  const { isEnglish, toggleLanguage, t } = useI18n()
+
   // Dark mode state
   const isDarkMode = ref(
     window.matchMedia &&
@@ -15,15 +19,6 @@ export function useGameStore() {
   const toggleDarkMode = () => {
     isDarkMode.value = !isDarkMode.value
     document.documentElement.classList.toggle("dark", isDarkMode.value)
-  }
-
-  // Language state
-  const isEnglish = ref(true)
-
-  // Toggle language
-  const toggleLanguage = () => {
-    isEnglish.value = !isEnglish.value
-    updatePlayerNames() // Update player names when language changes
   }
 
   // Update player names based on language
@@ -64,12 +59,8 @@ export function useGameStore() {
       // Only update player 1 name if it's one of the default names
       if (defaultPlayer1Names.includes(gameState.value.players[0].name)) {
         gameState.value.players[0].name = isVsComputerMode
-          ? isEnglish.value
-            ? "Player"
-            : "Joueur"
-          : isEnglish.value
-          ? "Player 1"
-          : "Joueur 1"
+          ? t("player")
+          : t("player1")
         console.log(
           "Updated player 1 name to:",
           gameState.value.players[0].name
@@ -79,12 +70,8 @@ export function useGameStore() {
       // Only update player 2 name if it's one of the default names
       if (defaultPlayer2Names.includes(gameState.value.players[1].name)) {
         gameState.value.players[1].name = isVsComputerMode
-          ? isEnglish.value
-            ? "Computer"
-            : "Ordinateur"
-          : isEnglish.value
-          ? "Player 2"
-          : "Joueur 2"
+          ? t("computer")
+          : t("player2")
         console.log(
           "Updated player 2 name to:",
           gameState.value.players[1].name
@@ -1257,22 +1244,14 @@ export function useGameStore() {
     const usePlayer1Name = !defaultPlayer1Names.includes(player1Name)
       ? player1Name
       : isVsComputerMode
-      ? isEnglish.value
-        ? "Player"
-        : "Joueur"
-      : isEnglish.value
-      ? "Player 1"
-      : "Joueur 1"
+      ? t("player")
+      : t("player1")
 
     const usePlayer2Name = !defaultPlayer2Names.includes(player2Name)
       ? player2Name
       : isVsComputerMode
-      ? isEnglish.value
-        ? "Computer"
-        : "Ordinateur"
-      : isEnglish.value
-      ? "Player 2"
-      : "Joueur 2"
+      ? t("computer")
+      : t("player2")
 
     gameState.value = {
       players: [
