@@ -2,12 +2,24 @@ import { ref, computed, watch } from "vue"
 import type { GameState } from "../types/game"
 import { useI18n } from "../i18n"
 
-const MIN_QUALIFYING_SCORE = 1000
+const MIN_QUALIFYING_SCORE_OPTIONS = [500, 750, 1000]
 const WINNING_SCORE = 10000
+// Add selectedQualificationScore ref with 1000 as default
+const selectedQualificationScore = ref(1000)
 
 export function useGameStore() {
   // Initialize i18n
   const { isEnglish, toggleLanguage, t } = useI18n()
+
+  // Function to set qualification score
+  const setQualificationScore = (score: number) => {
+    if (MIN_QUALIFYING_SCORE_OPTIONS.includes(score)) {
+      selectedQualificationScore.value = score
+    }
+  }
+
+  // Derived MIN_QUALIFYING_SCORE from the selected value
+  const MIN_QUALIFYING_SCORE = computed(() => selectedQualificationScore.value)
 
   // Dark mode state
   const isDarkMode = ref(
@@ -204,7 +216,7 @@ export function useGameStore() {
 
     // Check qualification criteria
     const isQualified = currentPlayer.value.isQualified
-    const meetsQualificationThreshold = totalScore >= MIN_QUALIFYING_SCORE
+    const meetsQualificationThreshold = totalScore >= MIN_QUALIFYING_SCORE.value
 
     // Either player must be qualified already OR the current score must meet the threshold
     return isQualified || meetsQualificationThreshold
@@ -594,9 +606,9 @@ export function useGameStore() {
 
     // Additional safety check: Don't allow keeping score below qualification threshold
     // if player is not yet qualified
-    if (!player.isQualified && turnTotal < MIN_QUALIFYING_SCORE) {
+    if (!player.isQualified && turnTotal < MIN_QUALIFYING_SCORE.value) {
       console.log(
-        `Cannot keep score of ${turnTotal} - below qualification threshold of ${MIN_QUALIFYING_SCORE}`
+        `Cannot keep score of ${turnTotal} - below qualification threshold of ${MIN_QUALIFYING_SCORE.value}`
       )
       return
     }
@@ -618,7 +630,10 @@ export function useGameStore() {
     // Add both current turn score and potential score
     player.totalScore += turnTotal
 
-    if (!player.isQualified && player.totalScore >= MIN_QUALIFYING_SCORE) {
+    if (
+      !player.isQualified &&
+      player.totalScore >= MIN_QUALIFYING_SCORE.value
+    ) {
       player.isQualified = true
       gameState.value.gamePhase = "NORMAL"
     }
@@ -724,7 +739,7 @@ export function useGameStore() {
         // Different strategies based on qualification status
         if (!isComputerQualified) {
           // If not qualified yet, only keep score if it meets the minimum qualifying score
-          if (totalAvailable >= MIN_QUALIFYING_SCORE) {
+          if (totalAvailable >= MIN_QUALIFYING_SCORE.value) {
             console.log(
               `Computer keeping score: ${totalAvailable} (meets qualification threshold)`
             )
@@ -732,7 +747,7 @@ export function useGameStore() {
           } else {
             // Not enough to qualify, keep rolling
             console.log(
-              `Computer rolling again: ${totalAvailable} not enough to qualify (need ${MIN_QUALIFYING_SCORE})`
+              `Computer rolling again: ${totalAvailable} not enough to qualify (need ${MIN_QUALIFYING_SCORE.value})`
             )
             playComputerTurn() // Recursive call for next action
           }
@@ -1251,6 +1266,9 @@ export function useGameStore() {
       ? t("computer")
       : t("player2")
 
+    // Keep the current qualification score (don't reset it)
+    // We don't need to explicitly preserve it since it's a separate ref
+
     gameState.value = {
       players: [
         {
@@ -1306,6 +1324,9 @@ export function useGameStore() {
     isDarkMode,
     isEnglish,
     MIN_QUALIFYING_SCORE,
+    MIN_QUALIFYING_SCORE_OPTIONS,
+    selectedQualificationScore,
+    setQualificationScore,
     WINNING_SCORE,
     rollDice,
     toggleDieSelection,

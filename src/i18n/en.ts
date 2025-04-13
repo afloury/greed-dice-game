@@ -40,6 +40,7 @@ export default {
   rollScore: "Roll score:",
   selected: "Selected:",
   totalAvailable: "Total Available:",
+  qualificationScore: "Qualification Score",
 
   // Game controls
   rollDice: "Roll Dice",

@@ -38,6 +38,28 @@
         </div>
       </div>
 
+      <!-- Qualification Score Selection -->
+      <div class="mb-8">
+        <h2 class="text-xl font-bold mb-4">
+          {{ t("qualificationScore") || "Qualification Score" }}
+        </h2>
+        <div class="grid grid-cols-3 gap-4">
+          <button
+            v-for="score in qualificationScoreOptions"
+            :key="score"
+            @click="selectedQualificationScore = score"
+            :class="[
+              'p-4 rounded-lg transition-all duration-200 game-mode-btn',
+              selectedQualificationScore === score
+                ? 'game-button-primary font-bold border-2 border-accent shadow-lg transform -translate-y-1'
+                : 'game-button-secondary border border-neutral-400',
+            ]"
+          >
+            {{ score }}
+          </button>
+        </div>
+      </div>
+
       <!-- Player Names -->
       <div class="mb-8">
         <h2 class="text-xl font-bold mb-4">
@@ -143,7 +165,12 @@ import { useGameStore } from "../composables/useGameStore"
 import { useI18n } from "../i18n"
 
 // Use the game store and i18n directly
-const { isDarkMode, toggleDarkMode } = useGameStore()
+const {
+  isDarkMode,
+  toggleDarkMode,
+  MIN_QUALIFYING_SCORE_OPTIONS,
+  setQualificationScore,
+} = useGameStore()
 const { isEnglish, toggleLanguage, t } = useI18n()
 
 // Emits
@@ -153,6 +180,10 @@ const emit = defineEmits<{
 
 // Game mode (vs friend or vs computer)
 const gameMode = ref<"vs-computer" | "vs-friend">("vs-computer")
+
+// Qualification score options and selection
+const qualificationScoreOptions = MIN_QUALIFYING_SCORE_OPTIONS
+const selectedQualificationScore = ref(1000)
 
 // Player names
 const player1Name = ref("")
@@ -232,6 +263,9 @@ const startGame = () => {
       player2NameValue = t("player2")
     }
   }
+
+  // Set the qualification score
+  setQualificationScore(selectedQualificationScore.value)
 
   // Create player objects
   const players = [

@@ -40,6 +40,7 @@ export default {
   rollScore: "Score du Lancer:",
   selected: "Sélectionné:",
   totalAvailable: "Total Disponible:",
+  qualificationScore: "Score de Qualification",
 
   // Game controls
   rollDice: "Lancer les Dés",

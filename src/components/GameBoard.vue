@@ -327,9 +327,9 @@ const {
   isEnglish,
   toggleLanguage,
   setRollCallback,
+  MIN_QUALIFYING_SCORE,
+  WINNING_SCORE,
 } = localStore
-
-const MIN_QUALIFYING_SCORE = 1000
 
 // Computed property to determine if qualification warning should be shown
 const showQualificationWarning = computed(() => {
@@ -342,7 +342,7 @@ const showQualificationWarning = computed(() => {
   // Show if there are points selected but not enough to qualify
   const turnTotal =
     gameState.value.currentTurnScore + gameState.value.potentialScore
-  return turnTotal > 0 && turnTotal < MIN_QUALIFYING_SCORE
+  return turnTotal > 0 && turnTotal < MIN_QUALIFYING_SCORE.value
 })
 
 // Tooltip for the Keep Score button
@@ -350,8 +350,11 @@ const keepScoreButtonTooltip = computed(() => {
   const turnTotal =
     gameState.value.currentTurnScore + gameState.value.potentialScore
 
-  if (!currentPlayer.value.isQualified && turnTotal < MIN_QUALIFYING_SCORE) {
-    return t("qualificationNeeded", [MIN_QUALIFYING_SCORE, turnTotal])
+  if (
+    !currentPlayer.value.isQualified &&
+    turnTotal < MIN_QUALIFYING_SCORE.value
+  ) {
+    return t("qualificationNeeded", [MIN_QUALIFYING_SCORE.value, turnTotal])
   }
 
   if (!canKeepScore.value) {
