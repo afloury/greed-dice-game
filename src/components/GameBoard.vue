@@ -100,9 +100,11 @@
               value: die.value,
               selected: die.isSelected,
               locked: die.isLocked,
+              isValidSelection: die.isValidSelection,
             }))
           "
           :is-rolling="spinningDice.some((spinning) => spinning)"
+          :is-player-turn="isPlayerTurn"
           @toggle-die-selection="toggleDieSelection"
         />
 

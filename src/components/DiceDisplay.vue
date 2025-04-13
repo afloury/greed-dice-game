@@ -10,13 +10,17 @@
           selected: die.selected && !die.locked,
           locked: die.locked,
           shaking: isRolling && !die.locked,
+          disabled: !die.locked && !die.selected && !die.isValidSelection,
+          'not-selectable': !isPlayerTurn,
         }"
         :title="
           die.locked
             ? t('dieIsLocked')
             : die.selected
             ? t('dieIsSelected')
-            : t('clickToSelect')
+            : die.isValidSelection
+            ? t('clickToSelect')
+            : t('notScorable')
         "
       >
         <div class="die" :class="`die-${die.value}`">
@@ -83,6 +87,7 @@ interface Die {
   value: number
   selected: boolean
   locked: boolean
+  isValidSelection?: boolean
 }
 
 const props = defineProps({
@@ -93,6 +98,10 @@ const props = defineProps({
   isRolling: {
     type: Boolean,
     default: false,
+  },
+  isPlayerTurn: {
+    type: Boolean,
+    default: true,
   },
 })
 
@@ -139,12 +148,27 @@ const { t } = useI18n()
 }
 
 .die-container.selected .die {
-  background-color: var(--color-accent-light);
+  background-color: var(--color-accent-secondary);
   box-shadow: 0 0 10px var(--color-accent);
 }
 
 .die-container.locked .die {
-  background-color: var(--color-primary-light);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+  opacity: 0.3;
+}
+
+.die-container.disabled {
+  cursor: not-allowed;
+}
+
+.die-container.disabled .die {
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+  opacity: 0.5;
+}
+
+.die-container.not-selectable {
+  cursor: not-allowed;
+  opacity: 0.8;
 }
 
 .locked-icon {
