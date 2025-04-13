@@ -95,15 +95,13 @@
         <!-- Dice Area with animation -->
         <DiceDisplay
           v-if="!gameState.diceHidden"
-          :dice="
-            gameState.dice.map((die) => ({
-              value: die.value,
-              selected: die.isSelected,
-              locked: die.isLocked,
-              isValidSelection: die.isValidSelection,
-            }))
-          "
-          :is-rolling="spinningDice.some((spinning) => spinning)"
+          :dice="gameState.dice.map((die: any) => ({
+            value: die.value,
+            selected: die.isSelected,
+            locked: die.isLocked,
+            isValidSelection: die.isValidSelection
+          }))"
+          :is-rolling="spinningDice.some((spinning: boolean) => spinning)"
           :is-player-turn="isPlayerTurn"
           @toggle-die-selection="toggleDieSelection"
         />
@@ -326,7 +324,6 @@ const {
   resetGame,
   isDarkMode,
   toggleDarkMode,
-  rollButtonTooltip,
   isEnglish,
   toggleLanguage,
   setRollCallback,
@@ -380,13 +377,13 @@ const rollDiceButtonTooltip = computed(() => {
     return t("cantRollBust")
   }
 
-  if (!gameState.value.dice.some((die) => !die.isLocked)) {
+  if (!gameState.value.dice.some((die: any) => !die.isLocked)) {
     return t("allDiceLocked")
   }
 
   if (
     !gameState.value.isFirstRoll &&
-    !gameState.value.dice.some((die) => die.isSelected)
+    !gameState.value.dice.some((die: any) => die.isSelected)
   ) {
     return t("mustSelectDie")
   }
@@ -402,14 +399,14 @@ const rollDiceButtonTooltip = computed(() => {
 onMounted(() => {
   console.log(
     "GameBoard received store with players:",
-    props.store?.gameState.value.players.map((p) => p.name)
+    props.store?.gameState.value.players.map((p: any) => p.name)
   )
   console.log(
     "GameBoard using localStore, player names:",
-    gameState.value.players.map((p) => p.name)
+    gameState.value.players.map((p: any) => p.name)
   )
 
-  setRollCallback((rollingDiceIndices) => {
+  setRollCallback((rollingDiceIndices: number[]) => {
     // Only play sound and animate if there are dice to roll
     if (rollingDiceIndices.length > 0) {
       // Play dice rolling sound
@@ -419,7 +416,7 @@ onMounted(() => {
       spinningDice.value = [false, false, false, false, false]
 
       // Set spinning for dice that will be rolled
-      rollingDiceIndices.forEach((index) => {
+      rollingDiceIndices.forEach((index: number) => {
         spinningDice.value[index] = true
       })
 
@@ -450,12 +447,12 @@ watch(
 function handleResetGame() {
   console.log(
     "Resetting game with player names:",
-    gameState.value.players.map((p) => p.name)
+    gameState.value.players.map((p: any) => p.name)
   )
   resetGame()
   console.log(
     "Game reset, player names are now:",
-    gameState.value.players.map((p) => p.name)
+    gameState.value.players.map((p: any) => p.name)
   )
   // The menu will be shown automatically because we set showMenu to true in resetGame
 }

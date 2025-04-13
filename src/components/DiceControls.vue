@@ -32,25 +32,12 @@
       class="bank-button w-full p-4 text-lg font-bold text-white rounded-lg"
       :class="{
         'opacity-50 cursor-not-allowed': !canBank || isRolling,
+        'qualification-needed': needsQualification,
       }"
       :disabled="!canBank || isRolling"
       :title="bankButtonTooltip"
     >
       <span class="flex items-center justify-center">
-        <!-- <svg
-          xmlns="http://www.w3.org/2000/svg"
-          class="h-6 w-6 mr-2"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z"
-          />
-        </svg> -->
         {{ t("keepScore")
         }}<!-- {{ needsQualification ? t("needPoints", [qualificationScore]) : "" }} -->
       </span>
@@ -109,5 +96,20 @@ const needsQualification = !props.isQualified
   background-color: var(--color-accent-dark);
   transform: translateY(-2px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.qualification-needed {
+  position: relative;
+  overflow: hidden;
+}
+
+.qualification-needed:before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background-color: var(--color-warning, #ffb627);
 }
 </style>

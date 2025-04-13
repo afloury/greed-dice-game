@@ -2,14 +2,10 @@
 import GameBoard from "./components/GameBoard.vue"
 import GameMenu from "./components/GameMenu.vue"
 import { useGameStore } from "./composables/useGameStore"
-import { useI18n } from "./i18n"
 import { watch } from "vue"
 
 const store = useGameStore()
 const { gameState, showMenu, setPlayers, refreshGameState } = store
-
-// Initialize i18n
-const { t } = useI18n()
 
 // Watch for player changes for debugging
 watch(
@@ -26,7 +22,9 @@ watch(
 )
 
 // Function to handle starting a game with custom player names
-const handleStartGame = (players) => {
+const handleStartGame = (
+  players: Array<{ id: number; name: string; isComputer: boolean }>
+) => {
   console.log("App.vue: Starting game with players:", players)
   setPlayers(players)
 

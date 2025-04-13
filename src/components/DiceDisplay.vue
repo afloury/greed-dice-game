@@ -90,7 +90,7 @@ interface Die {
   isValidSelection?: boolean
 }
 
-const props = defineProps({
+defineProps({
   dice: {
     type: Array as () => Die[],
     required: true,

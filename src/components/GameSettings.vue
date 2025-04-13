@@ -48,7 +48,9 @@
                 max="100"
                 :value="soundVolume"
                 class="volume-slider"
-                @input="updateSoundVolume($event.target.value)"
+                @input="
+                  updateSoundVolume(($event.target as HTMLInputElement).value)
+                "
               />
               <span>🔊</span>
             </div>
@@ -75,10 +77,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineProps, defineEmits } from "vue"
+import { defineProps, defineEmits } from "vue"
 import { useI18n } from "../i18n"
 
-const props = defineProps({
+defineProps({
   showSettings: Boolean,
   isDarkMode: Boolean,
   isEnglish: Boolean,

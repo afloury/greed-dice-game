@@ -21,65 +21,6 @@ export function useGameStore() {
     document.documentElement.classList.toggle("dark", isDarkMode.value)
   }
 
-  // Update player names based on language
-  const updatePlayerNames = () => {
-    if (gameState.value.players.length >= 2) {
-      // Define default names based on game mode
-      const isVsComputerMode = gameState.value.players[1].isComputer
-
-      // Default names for Player/Computer mode
-      const player1ComputerModeNames = ["Player", "Joueur"]
-      const player2ComputerModeNames = ["Computer", "Ordinateur"]
-
-      // Default names for Friend mode
-      const player1FriendModeNames = ["Player 1", "Joueur 1"]
-      const player2FriendModeNames = ["Player 2", "Joueur 2"]
-
-      // Combined list of all possible default names for each player
-      const defaultPlayer1Names = [
-        ...player1ComputerModeNames,
-        ...player1FriendModeNames,
-      ]
-      const defaultPlayer2Names = [
-        ...player2ComputerModeNames,
-        ...player2FriendModeNames,
-      ]
-
-      console.log(
-        "Current player names:",
-        gameState.value.players[0].name,
-        gameState.value.players[1].name
-      )
-      console.log(
-        "Default names that would be changed:",
-        defaultPlayer1Names,
-        defaultPlayer2Names
-      )
-
-      // Only update player 1 name if it's one of the default names
-      if (defaultPlayer1Names.includes(gameState.value.players[0].name)) {
-        gameState.value.players[0].name = isVsComputerMode
-          ? t("player")
-          : t("player1")
-        console.log(
-          "Updated player 1 name to:",
-          gameState.value.players[0].name
-        )
-      }
-
-      // Only update player 2 name if it's one of the default names
-      if (defaultPlayer2Names.includes(gameState.value.players[1].name)) {
-        gameState.value.players[1].name = isVsComputerMode
-          ? t("computer")
-          : t("player2")
-        console.log(
-          "Updated player 2 name to:",
-          gameState.value.players[1].name
-        )
-      }
-    }
-  }
-
   // Game menu state
   const showMenu = ref(true)
 
