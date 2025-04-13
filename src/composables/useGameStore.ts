@@ -1,6 +1,5 @@
-import { ref, computed, watch } from "vue"
-import type { GameState, Player, Die, ScoringRule } from "../types/game"
-import { SCORING_RULES } from "../types/game"
+import { ref, computed } from "vue"
+import type { GameState } from "../types/game"
 
 const MIN_QUALIFYING_SCORE = 1000
 const WINNING_SCORE = 10000
@@ -219,44 +218,6 @@ export function useGameStore() {
     }
   }
 
-  function checkForPossibleScores(rolledDice: number[]): boolean {
-    if (rolledDice.length === 0) return false
-
-    // Check for straights only if we rolled all 5 dice
-    if (rolledDice.length === 5) {
-      const isStraight1 = [1, 2, 3, 4, 5].every((num) =>
-        rolledDice.includes(num)
-      )
-      const isStraight2 = [2, 3, 4, 5, 6].every((num) =>
-        rolledDice.includes(num)
-      )
-
-      if (isStraight1 || isStraight2) {
-        return true
-      }
-    }
-
-    // Check for triplets, four of a kind, or five of a kind
-    const valueCounts: Record<number, number> = {}
-    rolledDice.forEach((value) => {
-      valueCounts[value] = (valueCounts[value] || 0) + 1
-    })
-
-    for (let value = 1; value <= 6; value++) {
-      // Check for any set of 3 or more dice
-      if (valueCounts[value] && valueCounts[value] >= 3) {
-        return true
-      }
-    }
-
-    // Check for individual 1s and 5s
-    if (rolledDice.includes(1) || rolledDice.includes(5)) {
-      return true
-    }
-
-    return false
-  }
-
   function calculateRollScore() {
     // Get newly rolled dice (unlocked and not selected)
     const rolledDice = gameState.value.dice
@@ -289,7 +250,7 @@ export function useGameStore() {
         remainingDice = []
 
         // All dice in a straight are valid for selection
-        gameState.value.dice.forEach((die, index) => {
+        gameState.value.dice.forEach((die) => {
           if (!die.isLocked && !die.isSelected) {
             die.isValidSelection = true
           }
