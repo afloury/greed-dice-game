@@ -28,11 +28,27 @@ export function useGameStore() {
 
   // Update player names based on language
   const updatePlayerNames = () => {
-    gameState.value.players[0].name = isEnglish.value ? "Player" : "Joueur"
-    gameState.value.players[1].name = isEnglish.value
-      ? "Computer"
-      : "Ordinateur"
+    if (gameState.value.players.length >= 2) {
+      // Only update default names
+      if (
+        gameState.value.players[0].name === "Player" ||
+        gameState.value.players[0].name === "Joueur"
+      ) {
+        gameState.value.players[0].name = isEnglish.value ? "Player" : "Joueur"
+      }
+      if (
+        gameState.value.players[1].name === "Computer" ||
+        gameState.value.players[1].name === "Ordinateur"
+      ) {
+        gameState.value.players[1].name = isEnglish.value
+          ? "Computer"
+          : "Ordinateur"
+      }
+    }
   }
+
+  // Game menu state
+  const showMenu = ref(true)
 
   // Initialize dark mode based on system preference
   if (isDarkMode.value) {
@@ -75,6 +91,22 @@ export function useGameStore() {
     bustMessage: "",
     diceHidden: true, // Initially hide dice until first roll
   })
+
+  // Set players from menu selection
+  function setPlayers(
+    players: Array<{ id: number; name: string; isComputer: boolean }>
+  ) {
+    gameState.value.players = players.map((player) => ({
+      id: player.id,
+      name: player.name,
+      totalScore: 0,
+      isQualified: false,
+      isComputer: player.isComputer,
+    }))
+
+    // Hide menu and start game
+    showMenu.value = false
+  }
 
   const currentPlayer = computed(
     () => gameState.value.players[gameState.value.currentPlayer]
@@ -1151,24 +1183,33 @@ export function useGameStore() {
       bustMessage: "",
       diceHidden: true, // Start with hidden dice
     }
+
+    // Show menu again
+    showMenu.value = true
   }
 
+  // Return the functions and values that should be accessible
   return {
     gameState,
     currentPlayer,
     isPlayerTurn,
     canRoll,
     canKeepScore,
+    rollButtonTooltip,
+    isDarkMode,
+    isEnglish,
+    MIN_QUALIFYING_SCORE,
+    WINNING_SCORE,
     rollDice,
     toggleDieSelection,
     keepScore,
-    resetGame,
+    endTurn,
     playComputerTurn,
-    isDarkMode,
+    resetGame,
     toggleDarkMode,
-    rollButtonTooltip,
-    isEnglish,
     toggleLanguage,
     setRollCallback,
+    showMenu,
+    setPlayers,
   }
 }

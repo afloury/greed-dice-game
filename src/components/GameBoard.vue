@@ -655,7 +655,7 @@ watch(
 // Also ensure computer plays after a game reset
 function handleResetGame() {
   resetGame()
-  console.log("Game reset, computer will start automatically if it's first")
+  // The menu will be shown automatically because we set showMenu to true in resetGame
 }
 
 // Function to test sound
