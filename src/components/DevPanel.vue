@@ -115,7 +115,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue"
+import { ref, onMounted, onUnmounted } from "vue"
 import { useGameStore } from "../composables/useGameStore"
 
 // Get the game store with all required functions
@@ -276,15 +276,12 @@ const togglePause = () => {
     originalSetTimeout = window.setTimeout
 
     // Override setTimeout to block all timeouts while paused
-    window.setTimeout = function (
-      callback: Function,
-      timeout: number,
-      ...args: any[]
-    ) {
-      if (logEnabled.value) {
-        console.log(`Dev Panel: Blocked setTimeout call (${timeout}ms)`)
+    window.setTimeout = function (handler: TimerHandler, timeout?: number) {
+      if (isPaused.value) {
+        // Return a dummy timeout ID when paused
+        return 0
       }
-      return 0 // Return a dummy timeout ID
+      return originalSetTimeout(handler, timeout)
     }
 
     if (logEnabled.value) {

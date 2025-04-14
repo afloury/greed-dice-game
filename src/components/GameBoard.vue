@@ -245,7 +245,7 @@
   </div>
 
   <!-- Dev Panel - Only visible in development mode -->
-  <!-- <DevPanel /> -->
+  <DevPanel />
 </template>
 
 <script setup lang="ts">
@@ -257,6 +257,7 @@ import GameScoring from "./GameScoring.vue"
 import DiceDisplay from "./DiceDisplay.vue"
 import DiceControls from "./DiceControls.vue"
 import DevPanel from "./DevPanel.vue"
+
 import { ref, watch, computed, onMounted, defineProps } from "vue"
 
 // Accept store as a prop
@@ -491,7 +492,7 @@ const testSound = () => {
 // Function to get the winner's name
 const getWinnerName = () => {
   const winner = gameState.value.players.find(
-    (player) => player.totalScore === 10000
+    (player: { totalScore: number }) => player.totalScore === 10000
   )
   return winner ? winner.name : ""
 }
@@ -499,7 +500,7 @@ const getWinnerName = () => {
 // Function to get the winner's score
 const getWinnerScore = () => {
   const winner = gameState.value.players.find(
-    (player) => player.totalScore === 10000
+    (player: { totalScore: number }) => player.totalScore === 10000
   )
   return winner ? winner.totalScore : 0
 }
