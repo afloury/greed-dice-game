@@ -104,8 +104,6 @@ export const useGameStore = defineStore("game", () => {
   const canKeepScore = computed(() => {
     // Can't keep score if game is over
     if (gameState.value.isGameOver) return false
-    // Can't keep score if it's not the player's turn
-    if (!isPlayerTurn.value) return false
     // Can't keep score if there's no potential score
     if (gameState.value.potentialScore <= 0) return false
 
