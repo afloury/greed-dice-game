@@ -262,10 +262,7 @@ const togglePause = () => {
     originalSetTimeout = window.setTimeout
 
     // Override setTimeout to block all timeouts while paused
-    window.setTimeout = function setTimeout(
-      handler: TimerHandler,
-      timeout?: number
-    ) {
+    window.setTimeout = function setTimeout() {
       console.log("Timeout blocked by dev panel pause")
       return 0 // Return a timeout ID that will never be used
     }

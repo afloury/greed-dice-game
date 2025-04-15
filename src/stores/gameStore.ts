@@ -313,13 +313,11 @@ export const useGameStore = defineStore("game", () => {
     }
 
     // Roll any unlocked dice
-    let hasRolledDice = false
     gameState.value.dice.forEach((die) => {
       if (!die.isLocked) {
         die.value = Math.floor(Math.random() * 6) + 1
         die.isSelected = false
         die.isValidSelection = false
-        hasRolledDice = true
       }
     })
 
