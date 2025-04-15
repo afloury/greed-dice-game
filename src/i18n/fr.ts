@@ -68,6 +68,9 @@ export default {
   selectedDie: "Sélectionné",
   locked: "Verrouillé (points en banque)",
   notScorable: "Non comptabilisable",
+  dieIsLocked: "Ce dé est verrouillé (points déjà en banque)",
+  dieIsSelected: "Ce dé est sélectionné (cliquez à nouveau pour désélectionner)",
+  clickToSelect: "Cliquez pour sélectionner ce dé",
 
   // Game rules
   scoringRules: "Règles de Scoring",

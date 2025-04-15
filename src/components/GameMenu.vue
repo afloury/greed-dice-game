@@ -150,7 +150,7 @@
 
       <!-- Start Game Button -->
       <button
-        @click="startGame"
+        @click="handleStartGame"
         class="w-full p-4 rounded-lg font-bold text-xl game-button-primary transition-all duration-200"
       >
         {{ t("newGame") }}
@@ -161,7 +161,7 @@
 
 <script setup lang="ts">
 import { ref } from "vue"
-import { useGameStore } from "../composables/useGameStore"
+import { useGameStore } from "../stores/gameStore"
 import { useI18n } from "../i18n"
 
 // Use the game store and i18n directly
@@ -170,13 +170,9 @@ const {
   toggleDarkMode,
   MIN_QUALIFYING_SCORE_OPTIONS,
   setQualificationScore,
+  startGame,
 } = useGameStore()
 const { isEnglish, toggleLanguage, t } = useI18n()
-
-// Emits
-const emit = defineEmits<{
-  startGame: [players: Array<{ id: number; name: string; isComputer: boolean }>]
-}>()
 
 // Game mode (vs friend or vs computer)
 const gameMode = ref<"vs-computer" | "vs-friend">("vs-computer")
@@ -241,7 +237,7 @@ const generateRandomName = (playerNumber: 1 | 2) => {
 }
 
 // Start the game with current players
-const startGame = () => {
+const handleStartGame = () => {
   // Set default names if empty
   let player1NameValue = player1Name.value.trim()
   let player2NameValue = player2Name.value.trim()
@@ -263,10 +259,8 @@ const startGame = () => {
       player2NameValue = t("player2")
     }
   }
-
   // Set the qualification score
   setQualificationScore(selectedQualificationScore.value)
-
   // Create player objects
   const players = [
     {
@@ -280,8 +274,7 @@ const startGame = () => {
       isComputer: gameMode.value === "vs-computer",
     },
   ]
-
-  emit("startGame", players)
+  startGame(players)
 }
 </script>
 

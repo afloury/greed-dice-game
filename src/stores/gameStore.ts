@@ -1,45 +1,31 @@
+import { defineStore } from "pinia"
 import { ref, computed, watch } from "vue"
+import { useDark, useToggle } from "@vueuse/core"
 import type { GameState } from "../types/game"
 import { useI18n } from "../i18n"
 
+// Constants moved outside the store
 const MIN_QUALIFYING_SCORE_OPTIONS = [500, 750, 1000]
 const WINNING_SCORE = 10000
-// Add selectedQualificationScore ref with 1000 as default
-const selectedQualificationScore = ref(1000)
+const DEFAULT_QUALIFICATION_SCORE = 1000
 
-export function useGameStore() {
+export const useGameStore = defineStore("game", () => {
   // Initialize i18n
   const { isEnglish, toggleLanguage, t } = useI18n()
 
-  // Function to set qualification score
-  const setQualificationScore = (score: number) => {
-    if (MIN_QUALIFYING_SCORE_OPTIONS.includes(score)) {
-      selectedQualificationScore.value = score
-    }
-  }
-
-  // Derived MIN_QUALIFYING_SCORE from the selected value
-  const MIN_QUALIFYING_SCORE = computed(() => selectedQualificationScore.value)
-
-  // Dark mode state
-  const isDarkMode = ref(
-    window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches
-  )
-
-  // Toggle dark mode
-  const toggleDarkMode = () => {
-    isDarkMode.value = !isDarkMode.value
-    document.documentElement.classList.toggle("dark", isDarkMode.value)
-  }
-
-  // Game menu state
+  // Store state
+  const selectedQualificationScore = ref(DEFAULT_QUALIFICATION_SCORE)
   const showMenu = ref(true)
 
-  // Initialize dark mode based on system preference
-  if (isDarkMode.value) {
-    document.documentElement.classList.add("dark")
-  }
+  // Use VueUse's useDark for dark mode management
+  // This automatically syncs with system preference
+  const isDark = useDark({
+    selector: "html",
+    attribute: "class",
+    valueDark: "dark",
+    valueLight: "",
+  })
+  const toggleDark = useToggle(isDark)
 
   const gameState = ref<GameState>({
     players: [
@@ -78,7 +64,98 @@ export function useGameStore() {
     diceHidden: true, // Initially hide dice until first roll
   })
 
-  // Watch for language changes and update the player names if they're default names
+  // Computed values
+  const MIN_QUALIFYING_SCORE = computed(() => selectedQualificationScore.value)
+
+  const currentPlayer = computed(() => {
+    return gameState.value.players[gameState.value.currentPlayer]
+  })
+
+  const isPlayerTurn = computed(() => {
+    return !currentPlayer.value.isComputer
+  })
+
+  const canRoll = computed(() => {
+    // Can't roll if game is over
+    if (gameState.value.isGameOver) return false
+
+    // Can't roll if it's not the player's turn
+    if (!isPlayerTurn.value) return false
+
+    // Can roll if it's the first roll of the turn
+    if (gameState.value.isFirstRoll) return !gameState.value.isBust
+
+    // Can't roll if all dice are locked or if there's a bust
+    if (
+      !gameState.value.dice.some((die) => !die.isLocked) ||
+      gameState.value.isBust
+    ) {
+      return false
+    }
+
+    // Don't allow rerolling without selecting dice (must select at least one die to continue)
+    if (!gameState.value.dice.some((die) => die.isSelected)) {
+      return false
+    }
+
+    return true
+  })
+
+  const canKeepScore = computed(() => {
+    // Can't keep score if game is over
+    if (gameState.value.isGameOver) return false
+    // Can't keep score if it's not the player's turn
+    if (!isPlayerTurn.value) return false
+    // Can't keep score if there's no potential score
+    if (gameState.value.potentialScore <= 0) return false
+
+    // Cannot keep score if there's a bust
+    if (gameState.value.isBust) return false
+    // Check qualification status
+    const currentPlayerObj =
+      gameState.value.players[gameState.value.currentPlayer]
+
+    // If player is already qualified, they can keep score
+    if (currentPlayerObj.isQualified) return true
+
+    // If player is not qualified, they need enough points to qualify
+    const totalTurnPoints =
+      gameState.value.currentTurnScore + gameState.value.potentialScore
+    return totalTurnPoints >= MIN_QUALIFYING_SCORE.value
+  })
+
+  const rollButtonTooltip = computed(() => {
+    if (gameState.value.isGameOver) {
+      return t("gameOver")
+    }
+
+    if (gameState.value.isBust) {
+      return t("cantRollBust")
+    }
+
+    if (!isPlayerTurn.value) {
+      return t("notYourTurn")
+    }
+
+    if (!gameState.value.dice.some((die) => !die.isLocked)) {
+      return t("allDiceLocked")
+    }
+
+    if (
+      !gameState.value.isFirstRoll &&
+      !gameState.value.dice.some((die) => die.isSelected)
+    ) {
+      return t("mustSelectDie")
+    }
+
+    if (gameState.value.isFirstRoll) {
+      return t("rollToStartTurn")
+    }
+
+    return t("rollDiceTooltip")
+  })
+
+  // Watch for language changes
   watch(isEnglish, () => {
     // Get player mode
     const isVsComputerMode =
@@ -131,128 +208,65 @@ export function useGameStore() {
       }
     }
 
-    // Force a refresh to update UI
-    refreshGameState()
+    // UI will update automatically with reactive state
   })
 
-  // Force a refresh of the game state (use this to make components re-render)
-  function refreshGameState() {
-    // Create a new reference to force Vue's reactivity to update
-    gameState.value = { ...gameState.value }
-    console.log(
-      "Game state refreshed, current players:",
-      gameState.value.players.map((p) => p.name)
-    )
+  // Functions
+  function setQualificationScore(score: number) {
+    if (MIN_QUALIFYING_SCORE_OPTIONS.includes(score)) {
+      selectedQualificationScore.value = score
+    }
   }
 
-  // Set players from menu selection
+  function toggleDarkMode() {
+    // Use VueUse's toggle function
+    toggleDark()
+  }
+
   function setPlayers(
     players: Array<{ id: number; name: string; isComputer: boolean }>
   ) {
-    console.log("Setting players in game store:", players)
-
-    // Preserve player totals and other data if it's the same players (for New Game function)
-    const updatedPlayers = players.map((player) => {
-      // Create a fresh player object with the new name and isComputer values
+    // Update the players array with new player info
+    gameState.value.players = players.map((player) => {
       return {
         id: player.id,
-        name: player.name, // Use the provided name directly
+        name: player.name,
         totalScore: 0,
         isQualified: false,
         isComputer: player.isComputer,
       }
     })
 
-    // Directly modify the gameState players array for immediate reactivity
-    gameState.value.players = updatedPlayers
+    // Reset game state
+    gameState.value.currentPlayer = 0
+    gameState.value.currentTurnScore = 0
+    gameState.value.lastRollScore = 0
+    gameState.value.potentialScore = 0
+    gameState.value.isFirstRoll = true
+    gameState.value.isBust = false
+    gameState.value.bustMessage = ""
+    gameState.value.gamePhase = "QUALIFICATION"
+    gameState.value.isGameOver = false
+    gameState.value.diceHidden = true
 
-    console.log("Players after setup:", gameState.value.players)
-    console.log(
-      "Player names:",
-      gameState.value.players.map((p) => p.name)
-    )
+    // Reset dice
+    gameState.value.dice = Array(5)
+      .fill(null)
+      .map(() => ({
+        value: 1,
+        isSelected: false,
+        isLocked: false,
+        isValidSelection: false,
+      }))
 
-    // Force a refresh to ensure reactivity
-    refreshGameState()
-
-    // Hide menu and start game
-    showMenu.value = false
+    // Force reactivity
   }
 
-  const currentPlayer = computed(
-    () => gameState.value.players[gameState.value.currentPlayer]
-  )
-  const isPlayerTurn = computed(() => !currentPlayer.value.isComputer)
-  const canRoll = computed(() => {
-    // Can roll for the first time in a turn (all dice are unlocked and none selected)
-    if (gameState.value.isFirstRoll) {
-      return !gameState.value.isBust
-    }
+  // Roll callback function for animations
+  let rollCallback: ((rollingDiceIndices: number[]) => void) | null = null
 
-    // Can't roll if all dice are locked or if there's a bust
-    if (
-      !gameState.value.dice.some((die) => !die.isLocked) ||
-      gameState.value.isBust
-    ) {
-      return false
-    }
-
-    // Don't allow rerolling without selecting dice (must select at least one die to continue)
-    if (!gameState.value.dice.some((die) => die.isSelected)) {
-      return false
-    }
-
-    return true
-  })
-  const canKeepScore = computed(() => {
-    const totalScore =
-      gameState.value.currentTurnScore + gameState.value.potentialScore
-
-    // Cannot keep score if there's a bust
-    if (gameState.value.isBust) return false
-
-    // Cannot keep score if there are no points
-    if (totalScore <= 0) return false
-
-    // Check qualification criteria
-    const isQualified = currentPlayer.value.isQualified
-    const meetsQualificationThreshold = totalScore >= MIN_QUALIFYING_SCORE.value
-
-    // Either player must be qualified already OR the current score must meet the threshold
-    return isQualified || meetsQualificationThreshold
-  })
-
-  const rollButtonTooltip = computed(() => {
-    if (gameState.value.isBust) {
-      return t("cantRollBust")
-    }
-
-    if (!gameState.value.dice.some((die) => !die.isLocked)) {
-      return t("allDiceLocked")
-    }
-
-    if (
-      !gameState.value.isFirstRoll &&
-      !gameState.value.dice.some((die) => die.isSelected)
-    ) {
-      return t("mustSelectDie")
-    }
-
-    if (gameState.value.isFirstRoll) {
-      return t("rollToStartTurn")
-    }
-
-    return t("rollDiceTooltip")
-  })
-
-  // Callback for dice rolling animation
-  let onRollCallback: ((rollingDiceIndices: number[]) => void) | null = null
-
-  // Set callback function
-  const setRollCallback = (
-    callback: (rollingDiceIndices: number[]) => void
-  ) => {
-    onRollCallback = callback
+  function setRollCallback(callback: (rollingDiceIndices: number[]) => void) {
+    rollCallback = callback
   }
 
   function rollDice() {
@@ -260,15 +274,15 @@ export function useGameStore() {
     if (gameState.value.isBust) return
 
     // Notify about dice to be rolled
-    if (onRollCallback) {
+    if (rollCallback) {
       const rollingDiceIndices = gameState.value.dice
         .map((die, index) => (!die.isLocked ? index : -1))
         .filter((index) => index !== -1)
 
-      onRollCallback(rollingDiceIndices)
+      rollCallback(rollingDiceIndices)
     }
 
-    // Show dice when rolling
+    // Make sure dice are visible
     gameState.value.diceHidden = false
 
     // Add potential score to current turn score and reset potential score
@@ -279,7 +293,6 @@ export function useGameStore() {
     if (!gameState.value.isFirstRoll) {
       gameState.value.lastRollScore = 0
     }
-
     // Lock any selected dice
     gameState.value.dice.forEach((die) => {
       if (die.isSelected) {
@@ -311,14 +324,10 @@ export function useGameStore() {
     })
 
     // After the very first roll, set isFirstRoll to false
-    if (gameState.value.isFirstRoll) {
-      gameState.value.isFirstRoll = false
-    }
+    gameState.value.isFirstRoll = false
 
-    // Calculate score only for newly rolled dice
-    if (hasRolledDice) {
-      calculateRollScore()
-    }
+    // Calculate score for this roll
+    calculateRollScore()
   }
 
   function calculateRollScore() {
@@ -360,7 +369,6 @@ export function useGameStore() {
         })
       }
     }
-
     if (remainingDice.length > 0) {
       // Process scoring combinations (in order of priority)
       // First look for sets of 3 or more
@@ -688,7 +696,6 @@ export function useGameStore() {
     gameState.value.diceHidden = true
   }
 
-  // Function to handle the computer's turn
   function playComputerTurn() {
     // Safety check - make sure it's still computer's turn
     if (!currentPlayer.value.isComputer || gameState.value.isGameOver) {
@@ -1309,41 +1316,97 @@ export function useGameStore() {
       diceHidden: true, // Start with hidden dice
     }
 
-    // Force a refresh of the game state to ensure reactivity
-    refreshGameState()
-
     // Show menu again
     showMenu.value = true
   }
 
-  // Return the functions and values that should be accessible
+  // Function to handle starting a game with custom player names
+  const startGame = (
+    players: Array<{ id: number; name: string; isComputer: boolean }>
+  ) => {
+    console.log("App.vue: Starting game with players:", players)
+    setPlayers(players)
+    // Hide the menu
+    showMenu.value = false
+  }
+
+  const updatePlayerScore = (playerIndex: number, score: number) => {
+    if (score >= 0 && score <= 10000) {
+      const player = { ...gameState.value.players[playerIndex] }
+      player.totalScore = score
+
+      // Automatically set qualified if score is high enough
+      if (score >= MIN_QUALIFYING_SCORE.value) {
+        player.isQualified = true
+      }
+
+      gameState.value.players[playerIndex] = player
+    }
+  }
+
+  const qualifyPlayer = (playerIndex: number) => {
+    const player = { ...gameState.value.players[playerIndex] }
+    player.isQualified = true
+    gameState.value.players[playerIndex] = player
+  }
+
+  const setGameOver = (isOver: boolean) => {
+    gameState.value.isGameOver = isOver
+  }
+
+  const updateDieValue = (dieIndex: number, value: number) => {
+    if (value >= 1 && value <= 6) {
+      const die = { ...gameState.value.dice[dieIndex] }
+      die.value = value
+      gameState.value.dice[dieIndex] = die
+
+      // Recalculate valid dice
+      calculateRollScore()
+
+      // Update potential score
+      calculatePotentialScore()
+    }
+  }
+
+  // Return store state and methods
   return {
+    // State
     gameState,
+    selectedQualificationScore,
+    isDarkMode: isDark,
+    showMenu,
+
+    // Computed
+    MIN_QUALIFYING_SCORE,
+    MIN_QUALIFYING_SCORE_OPTIONS,
+    WINNING_SCORE: WINNING_SCORE,
     currentPlayer,
     isPlayerTurn,
     canRoll,
     canKeepScore,
     rollButtonTooltip,
-    isDarkMode,
-    isEnglish,
-    MIN_QUALIFYING_SCORE,
-    MIN_QUALIFYING_SCORE_OPTIONS,
-    selectedQualificationScore,
+
+    // Methods
     setQualificationScore,
-    WINNING_SCORE,
+    toggleDarkMode,
+
+    setPlayers,
+    setRollCallback,
     rollDice,
+    calculateRollScore,
+    handleBust,
+    calculatePotentialScore,
     toggleDieSelection,
     keepScore,
     endTurn,
     playComputerTurn,
+    selectComputerDice,
     resetGame,
-    toggleDarkMode,
     toggleLanguage,
-    setRollCallback,
-    showMenu,
-    setPlayers,
-    refreshGameState,
-    calculateRollScore,
-    calculatePotentialScore,
+    updatePlayerScore,
+    qualifyPlayer,
+    setGameOver,
+    updateDieValue,
+    startGame,
   }
-}
+})

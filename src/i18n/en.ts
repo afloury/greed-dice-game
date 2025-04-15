@@ -68,6 +68,9 @@ export default {
   selectedDie: "Selected",
   locked: "Locked (banked points)",
   notScorable: "Not scorable",
+  dieIsLocked: "This die is locked (points already banked)",
+  dieIsSelected: "This die is selected (click again to deselect)",
+  clickToSelect: "Click to select this die",
 
   // Game rules
   scoringRules: "Scoring Rules",

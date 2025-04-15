@@ -10,7 +10,7 @@
           <div class="text-lg">
             {{ t("currentPhase") }}
             <span class="font-semibold text-accent">{{
-              t(`phases.${gameState.gamePhase}`)
+              t(`phases.${store.gameState.gamePhase}`)
             }}</span>
           </div>
           <div class="flex gap-2">
@@ -33,11 +33,11 @@
       <!-- Settings Modal -->
       <GameSettings
         :show-settings="showSettings"
-        :is-dark-mode="isDarkMode"
+        :is-dark-mode="store.isDarkMode"
         :is-english="isEnglish"
         v-model:sound-volume="soundVolume"
         @update:show-settings="showSettings = $event"
-        @toggle-dark-mode="toggleDarkMode"
+        @toggle-dark-mode="store.toggleDarkMode"
         @toggle-language="toggleLanguage"
         @test-sound="testSound"
       />
@@ -45,11 +45,11 @@
       <!-- Player Scores -->
       <div class="grid grid-cols-2 gap-4 mb-6">
         <div
-          v-for="player in gameState.players"
+          v-for="player in store.gameState.players"
           :key="player.id"
           :class="[
             'game-panel p-4',
-            currentPlayer.id === player.id ? 'current-player' : '',
+            store.currentPlayer.id === player.id ? 'current-player' : '',
           ]"
         >
           <h2 class="text-xl font-bold mb-2">
@@ -71,7 +71,7 @@
             }}</span>
           </div>
           <div v-if="!player.isQualified" class="text-sm text-danger">
-            {{ t("needsQualification", [MIN_QUALIFYING_SCORE]) }}
+            {{ t("needsQualification", [store.MIN_QUALIFYING_SCORE]) }}
           </div>
           <div v-else class="text-sm text-success">
             {{ t("qualified") }}
@@ -83,11 +83,11 @@
       <ComputerAI ref="computerAIRef" />
 
       <!-- Game Over Screen -->
-      <div v-if="gameState.isGameOver" class="game-over-screen">
+      <div v-if="store.gameState.isGameOver" class="game-over-screen">
         <div class="game-over-content">
           <h2 class="text-4xl font-bold mb-4">{{ t("phases.Game Over") }}</h2>
           <p class="text-2xl mb-6">
-            <span class="font-bold">{{ getWinnerName() }}</span>
+            <span class="text-xl font-bold">{{ getWinnerName() }}</span>
             {{ t("wonTheGame") }}!
           </p>
           <p class="text-xl mb-8">
@@ -106,24 +106,24 @@
       <div class="game-panel p-6 mb-6">
         <!-- Scoring -->
         <GameScoring
-          :current-turn-score="gameState.currentTurnScore"
-          :is-first-roll="gameState.isFirstRoll"
-          :last-roll-score="gameState.lastRollScore"
-          :potential-score="gameState.potentialScore"
+          :current-turn-score="store.gameState.currentTurnScore"
+          :is-first-roll="store.gameState.isFirstRoll"
+          :last-roll-score="store.gameState.lastRollScore"
+          :potential-score="store.gameState.potentialScore"
         />
 
         <!-- Dice Area with animation -->
         <DiceDisplay
-          v-if="!gameState.diceHidden"
-          :dice="gameState.dice.map((die: any) => ({
+          v-if="!store.gameState.diceHidden"
+          :dice="store.gameState.dice.map((die: any) => ({
             value: die.value,
             selected: die.isSelected,
             locked: die.isLocked,
             isValidSelection: die.isValidSelection
           }))"
           :is-rolling="spinningDice.some((spinning: boolean) => spinning)"
-          :is-player-turn="isPlayerTurn"
-          @toggle-die-selection="toggleDieSelection"
+          :is-player-turn="store.isPlayerTurn"
+          @toggle-die-selection="store.toggleDieSelection"
         />
 
         <div v-else class="dice-placeholder text-center my-8">
@@ -152,24 +152,24 @@
         <!-- Game Controls -->
         <DiceControls
           :is-rolling="spinningDice.some((spinning) => spinning)"
-          :can-roll="canRoll && isPlayerTurn"
-          :is-first-roll="gameState.isFirstRoll"
-          :can-bank="canKeepScore && isPlayerTurn"
-          :current-turn-score="gameState.currentTurnScore"
-          :potential-score="gameState.potentialScore"
+          :can-roll="store.canRoll && store.isPlayerTurn"
+          :is-first-roll="store.gameState.isFirstRoll"
+          :can-bank="store.canKeepScore && store.isPlayerTurn"
+          :current-turn-score="store.gameState.currentTurnScore"
+          :potential-score="store.gameState.potentialScore"
           :roll-button-tooltip="rollDiceButtonTooltip"
           :bank-button-tooltip="keepScoreButtonTooltip"
-          :is-qualified="currentPlayer.isQualified"
-          :qualification-score="MIN_QUALIFYING_SCORE"
-          @roll-dice="rollDice"
-          @bank-points="keepScore"
+          :is-qualified="store.currentPlayer.isQualified"
+          :qualification-score="store.MIN_QUALIFYING_SCORE"
+          @roll-dice="handleRollDice"
+          @bank-points="handleKeepScore"
         />
 
         <!-- Bust Message -->
-        <div v-if="gameState.isBust" class="text-center mt-4 mb-2">
+        <div v-if="store.gameState.isBust" class="text-center mt-4 mb-2">
           <div class="p-3 rounded relative bust-message" role="alert">
             <span class="block sm:inline text-lg font-bold">{{
-              gameState.bustMessage
+              store.gameState.bustMessage
             }}</span>
             <p class="text-sm">
               {{ t("transitioningToNextPlayer") }}
@@ -184,8 +184,11 @@
               {{ t("qualificationRequired") }}
             </span>
             <p class="text-sm">
-              {{ t("qualificationMessage", [MIN_QUALIFYING_SCORE]) }}
-              {{ gameState.currentTurnScore + gameState.potentialScore }}
+              {{ t("qualificationNeeded", [store.MIN_QUALIFYING_SCORE]) }}
+              {{
+                store.gameState.currentTurnScore +
+                store.gameState.potentialScore
+              }}
             </p>
           </div>
         </div>
@@ -249,7 +252,7 @@
 </template>
 
 <script setup lang="ts">
-import { useGameStore } from "../composables/useGameStore"
+import { useGameStore } from "../stores/gameStore"
 import { useI18n } from "../i18n"
 import ComputerAI from "./ComputerAI.vue"
 import GameSettings from "./GameSettings.vue"
@@ -257,19 +260,13 @@ import GameScoring from "./GameScoring.vue"
 import DiceDisplay from "./DiceDisplay.vue"
 import DiceControls from "./DiceControls.vue"
 import DevPanel from "./DevPanel.vue"
+import { computed, onMounted, ref, watch } from "vue"
 
-import { ref, watch, computed, onMounted, defineProps } from "vue"
-
-// Accept store as a prop
-const props = defineProps({
-  store: Object,
-})
-
-// Use the provided store or create a new one if not provided (for backward compatibility)
-const localStore = props.store || useGameStore()
+// Use the store directly to maintain reactivity
+const store = useGameStore()
 
 // Initialize i18n
-const { t } = useI18n()
+const { t, isEnglish, toggleLanguage } = useI18n()
 
 // Define the interface for the exposed methods from ComputerAI
 interface ComputerAIExpose {
@@ -336,56 +333,48 @@ const playDiceSound = () => {
   }
 }
 
-// Use the store provided by props
-const {
-  gameState,
-  currentPlayer,
-  isPlayerTurn,
-  canRoll,
-  canKeepScore,
-  rollDice,
-  toggleDieSelection,
-  keepScore,
-  resetGame,
-  isDarkMode,
-  toggleDarkMode,
-  isEnglish,
-  toggleLanguage,
-  setRollCallback,
-  MIN_QUALIFYING_SCORE,
-} = localStore
+// Function to animate dice rolling
+const animateDice = () => {
+  // After a delay, stop the spinning animation
+  setTimeout(() => {
+    spinningDice.value = Array(5).fill(false)
+  }, 1000)
+}
 
 // Computed property to determine if qualification warning should be shown
 const showQualificationWarning = computed(() => {
-  // Only show for the human player's turn
-  if (!isPlayerTurn.value || gameState.value.isBust) return false
+  // Only show the warning if it's the player's turn and they're not qualified
+  if (!store.isPlayerTurn || store.gameState.isBust) return false
 
-  // Only show if not already qualified
-  if (currentPlayer.value.isQualified) return false
+  // Check if the current player is qualified
+  if (store.currentPlayer.isQualified) return false
 
-  // Show if there are points selected but not enough to qualify
-  const turnTotal =
-    gameState.value.currentTurnScore + gameState.value.potentialScore
-  return turnTotal > 0 && turnTotal < MIN_QUALIFYING_SCORE.value
+  // Check if the player has enough points to qualify
+  return (
+    store.gameState.gamePhase === "QUALIFICATION" &&
+    store.gameState.potentialScore < store.MIN_QUALIFYING_SCORE &&
+    store.currentPlayer.totalScore + store.gameState.potentialScore <
+      store.MIN_QUALIFYING_SCORE
+  )
 })
 
 // Tooltip for the Keep Score button
 const keepScoreButtonTooltip = computed(() => {
   const turnTotal =
-    gameState.value.currentTurnScore + gameState.value.potentialScore
+    store.gameState.currentTurnScore + store.gameState.potentialScore
 
   if (
-    !currentPlayer.value.isQualified &&
-    turnTotal < MIN_QUALIFYING_SCORE.value
+    !store.currentPlayer.isQualified &&
+    turnTotal < store.MIN_QUALIFYING_SCORE
   ) {
-    return t("qualificationNeeded", [MIN_QUALIFYING_SCORE.value, turnTotal])
+    return t("qualificationNeeded", [store.MIN_QUALIFYING_SCORE, turnTotal])
   }
 
-  if (!canKeepScore.value) {
+  if (!store.canKeepScore) {
     return t("noPointsToKeep")
   }
 
-  if (!isPlayerTurn.value) {
+  if (!store.isPlayerTurn) {
     return t("notYourTurnKeep")
   }
 
@@ -394,28 +383,28 @@ const keepScoreButtonTooltip = computed(() => {
 
 // Tooltip for the Roll Dice button
 const rollDiceButtonTooltip = computed(() => {
-  if (!isPlayerTurn.value) {
+  if (!store.isPlayerTurn) {
     return t("notYourTurn")
   }
 
   // We should use our own detailed tooltips instead of the ones from the store
   // since we have proper translations
-  if (gameState.value.isBust) {
+  if (store.gameState.isBust) {
     return t("cantRollBust")
   }
 
-  if (!gameState.value.dice.some((die: any) => !die.isLocked)) {
+  if (!store.gameState.dice.some((die: any) => !die.isLocked)) {
     return t("allDiceLocked")
   }
 
   if (
-    !gameState.value.isFirstRoll &&
-    !gameState.value.dice.some((die: any) => die.isSelected)
+    !store.gameState.isFirstRoll &&
+    !store.gameState.dice.some((die: any) => die.isSelected)
   ) {
     return t("mustSelectDie")
   }
 
-  if (gameState.value.isFirstRoll) {
+  if (store.gameState.isFirstRoll) {
     return t("rollToStartTurn")
   }
 
@@ -426,46 +415,39 @@ const rollDiceButtonTooltip = computed(() => {
 onMounted(() => {
   console.log(
     "GameBoard received store with players:",
-    props.store?.gameState.value.players.map((p: any) => p.name)
-  )
-  console.log(
-    "GameBoard using localStore, player names:",
-    gameState.value.players.map((p: any) => p.name)
+    store.gameState.players.map((p: any) => p.name)
   )
 
-  setRollCallback((rollingDiceIndices: number[]) => {
-    // Only play sound and animate if there are dice to roll
-    if (rollingDiceIndices.length > 0) {
-      // Play dice rolling sound
-      playDiceSound()
+  store.setRollCallback((rollingDiceIndices: number[]) => {
+    // Reset spinning state
+    spinningDice.value = Array(5).fill(false)
 
-      // Reset all dice to not spinning
-      spinningDice.value = [false, false, false, false, false]
+    // Mark dice that are rolling as spinning
+    rollingDiceIndices.forEach((index) => {
+      spinningDice.value[index] = true
+    })
 
-      // Set spinning for dice that will be rolled
-      rollingDiceIndices.forEach((index: number) => {
-        spinningDice.value[index] = true
-      })
+    // Play dice sound
+    playDiceSound()
 
-      // Stop spinning after animation completes
-      setTimeout(() => {
-        spinningDice.value = [false, false, false, false, false]
-      }, 800) // Match animation duration
-    }
+    // After a delay, stop the spinning animation
+    setTimeout(() => {
+      spinningDice.value = Array(5).fill(false)
+    }, 1000)
   })
 })
 
 // Watch for end turn transitions to make sure computer's turn is triggered
 watch(
-  () => gameState.value.currentPlayer,
+  () => store.gameState.currentPlayer,
   (newPlayerIndex) => {
     // The endTurn function in the store now handles starting the computer's turn automatically
     // This watcher is just for logging purposes now
-    const player = gameState.value.players[newPlayerIndex]
+    const player = store.gameState.players[newPlayerIndex]
     console.log(`GameBoard detected player change to: ${player.name}`, {
       currentPlayerIdx: newPlayerIndex,
       isComputer: player.isComputer,
-      isGameOver: gameState.value.isGameOver,
+      isGameOver: store.gameState.isGameOver,
     })
   }
 )
@@ -474,12 +456,12 @@ watch(
 function handleResetGame() {
   console.log(
     "Resetting game with player names:",
-    gameState.value.players.map((p: any) => p.name)
+    store.gameState.players.map((p: any) => p.name)
   )
-  resetGame()
+  store.resetGame()
   console.log(
     "Game reset, player names are now:",
-    gameState.value.players.map((p: any) => p.name)
+    store.gameState.players.map((p: any) => p.name)
   )
   // The menu will be shown automatically because we set showMenu to true in resetGame
 }
@@ -491,7 +473,7 @@ const testSound = () => {
 
 // Function to get the winner's name
 const getWinnerName = () => {
-  const winner = gameState.value.players.find(
+  const winner = store.gameState.players.find(
     (player: { totalScore: number }) => player.totalScore === 10000
   )
   return winner ? winner.name : ""
@@ -499,14 +481,42 @@ const getWinnerName = () => {
 
 // Function to get the winner's score
 const getWinnerScore = () => {
-  const winner = gameState.value.players.find(
+  const winner = store.gameState.players.find(
     (player: { totalScore: number }) => player.totalScore === 10000
   )
   return winner ? winner.totalScore : 0
 }
+
+// Function to keep score
+const handleKeepScore = () => {
+  // Can only keep score if it's allowed
+  if (!store.canKeepScore || !store.isPlayerTurn) return
+
+  // Keep score
+  store.keepScore()
+}
+
+// Function to handle roll button click
+const handleRollDice = () => {
+  // Can only roll if it's allowed
+  if (!store.canRoll || !store.isPlayerTurn) return
+
+  // Play sound
+  playDiceSound()
+
+  // Roll the dice
+  store.rollDice()
+
+  // Reset the spinning dice
+  spinningDice.value = store.gameState.dice.map(() => true)
+
+  // Start the animation
+  animateDice()
+}
 </script>
 
 <style scoped>
+/* ... */
 /* Game-specific styles */
 .game-background {
   background-color: var(--color-bg);

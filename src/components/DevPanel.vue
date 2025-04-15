@@ -33,7 +33,7 @@
       <div class="panel-section">
         <h4>Player Scores</h4>
         <div
-          v-for="(player, index) in store.gameState.value.players"
+          v-for="(player, index) in store.gameState.players"
           :key="index"
           class="score-control"
         >
@@ -67,13 +67,9 @@
         <div class="control-row">
           <button
             @click="toggleGameOver"
-            :class="{ 'active-button': store.gameState.value.isGameOver }"
+            :class="{ 'active-button': store.gameState.isGameOver }"
           >
-            {{
-              store.gameState.value.isGameOver
-                ? "Resume Game"
-                : "Force Game Over"
-            }}
+            {{ store.gameState.isGameOver ? "Resume Game" : "Force Game Over" }}
           </button>
           <button
             @click="toggleLogEnabled"
@@ -89,7 +85,7 @@
         <h4>Dice Control</h4>
         <div class="dice-control">
           <div
-            v-for="(die, index) in store.gameState.value.dice"
+            v-for="(die, index) in store.gameState.dice"
             :key="index"
             class="die-input"
           >
@@ -116,7 +112,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue"
-import { useGameStore } from "../composables/useGameStore"
+import { useGameStore } from "../stores/gameStore"
 
 // Get the game store with all required functions
 const store = useGameStore()
@@ -219,18 +215,13 @@ const updatePlayerScore = (playerIndex: number, event: Event) => {
   const newScore = parseInt(input.value, 10)
 
   if (!isNaN(newScore) && newScore >= 0 && newScore <= 10000) {
-    // Update player score directly and trigger reactivity
-    store.gameState.value.players[playerIndex].totalScore = newScore
-
-    // Automatically set qualified if score is high enough
-    if (newScore >= store.MIN_QUALIFYING_SCORE.value) {
-      store.gameState.value.players[playerIndex].isQualified = true
-    }
+    // Use the store's method to update the player score
+    store.updatePlayerScore(playerIndex, newScore)
 
     // Log the change
     if (logEnabled.value) {
       console.log(
-        `Dev Panel: Set ${store.gameState.value.players[playerIndex].name}'s score to ${newScore}`
+        `Dev Panel: Set ${store.gameState.players[playerIndex].name}'s score to ${newScore}`
       )
     }
   }
@@ -238,31 +229,26 @@ const updatePlayerScore = (playerIndex: number, event: Event) => {
 
 // Set player score to specific value
 const setPlayerScore = (playerIndex: number, score: number) => {
-  // Update player score directly
-  store.gameState.value.players[playerIndex].totalScore = score
-
-  // Automatically set qualified if score is high enough
-  if (score >= store.MIN_QUALIFYING_SCORE.value) {
-    store.gameState.value.players[playerIndex].isQualified = true
-  }
+  // Use the store's method to update the player score
+  store.updatePlayerScore(playerIndex, score)
 
   // Log the change
   if (logEnabled.value) {
     console.log(
-      `Dev Panel: Set ${store.gameState.value.players[playerIndex].name}'s score to ${score}`
+      `Dev Panel: Set ${store.gameState.players[playerIndex].name}'s score to ${score}`
     )
   }
 }
 
 // Qualify a player
 const qualifyPlayer = (playerIndex: number) => {
-  // Access directly through store
-  store.gameState.value.players[playerIndex].isQualified = true
+  // Use the store's method to qualify the player
+  store.qualifyPlayer(playerIndex)
 
   // Log the change
   if (logEnabled.value) {
     console.log(
-      `Dev Panel: Qualified ${store.gameState.value.players[playerIndex].name}`
+      `Dev Panel: Qualified ${store.gameState.players[playerIndex].name}`
     )
   }
 }
@@ -272,107 +258,78 @@ const togglePause = () => {
   isPaused.value = !isPaused.value
 
   if (isPaused.value) {
-    // Store original timing functions
+    // Save original setTimeout
     originalSetTimeout = window.setTimeout
 
     // Override setTimeout to block all timeouts while paused
-    window.setTimeout = function (handler: TimerHandler, timeout?: number) {
-      if (isPaused.value) {
-        // Return a dummy timeout ID when paused
-        return 0
-      }
-      return originalSetTimeout(handler, timeout)
+    window.setTimeout = function setTimeout(
+      handler: TimerHandler,
+      timeout?: number
+    ) {
+      console.log("Timeout blocked by dev panel pause")
+      return 0 // Return a timeout ID that will never be used
     }
 
     if (logEnabled.value) {
-      console.log("Dev Panel: Game paused - all timeouts are now blocked")
+      console.log("Dev Panel: Game paused")
     }
   } else {
-    // Restore original setTimeout when unpausing
-    window.setTimeout = originalSetTimeout
-
-    if (logEnabled.value) {
-      console.log("Dev Panel: Game resumed - timing functions restored")
+    // Restore original setTimeout
+    if (originalSetTimeout) {
+      window.setTimeout = originalSetTimeout
     }
 
-    // If it's the computer's turn, we need to re-trigger it
-    const currentPlayerIndex = store.gameState.value.currentPlayer
-    if (
-      store.gameState.value.players[currentPlayerIndex].isComputer &&
-      !store.gameState.value.isGameOver
-    ) {
-      if (logEnabled.value) {
-        console.log("Dev Panel: Resuming computer turn...")
-      }
-
-      // Wait a moment before restarting the computer turn
-      originalSetTimeout(() => {
-        store.playComputerTurn()
-      }, 500)
+    if (logEnabled.value) {
+      console.log("Dev Panel: Game resumed")
     }
   }
 }
 
 // Force end current turn
 const forceEndTurn = () => {
+  // End the current turn
   store.endTurn()
 
   if (logEnabled.value) {
-    console.log("Dev Panel: Forced end of turn")
+    console.log("Dev Panel: Forced end of current turn")
   }
 }
 
 // Toggle game over state
 const toggleGameOver = () => {
-  store.gameState.value.isGameOver = !store.gameState.value.isGameOver
-
-  if (store.gameState.value.isGameOver) {
-    store.gameState.value.gamePhase = "END_GAME"
-  } else {
-    store.gameState.value.gamePhase = store.gameState.value.players.some(
-      (p) => p.isQualified
-    )
-      ? "NORMAL"
-      : "QUALIFICATION"
-  }
+  // Toggle game over state using the store method
+  store.setGameOver(!store.gameState.isGameOver)
 
   if (logEnabled.value) {
     console.log(
-      `Dev Panel: Set game over to ${store.gameState.value.isGameOver}`
+      `Dev Panel: ${
+        store.gameState.isGameOver ? "Forced game over" : "Resumed game"
+      }`
     )
   }
 }
 
 // Make computer win
 const makeComputerWin = () => {
-  const computerIndex = store.gameState.value.players.findIndex(
-    (p) => p.isComputer
+  // Find the computer player
+  const computerPlayerIndex = store.gameState.players.findIndex(
+    (player: any) => player.isComputer
   )
 
-  if (computerIndex !== -1) {
-    // Update player scores first
-    store.gameState.value.players.forEach((player, idx) => {
-      if (idx === computerIndex) {
-        // Set computer score to 10000 (exact winning score)
-        player.totalScore = 10000
-        player.isQualified = true
-      } else {
-        // Set other players to a lower score
-        player.totalScore = 9000 + Math.floor(Math.random() * 900)
-        player.isQualified = true
-      }
-    })
+  if (computerPlayerIndex !== -1) {
+    // Set the computer's score to just below the winning score
+    store.updatePlayerScore(computerPlayerIndex, 9900)
 
-    // Set game over state
-    store.gameState.value.isGameOver = true
-    store.gameState.value.gamePhase = "END_GAME"
+    // Make sure the computer is qualified
+    store.qualifyPlayer(computerPlayerIndex)
 
-    // Set current player to computer for correct winner display
-    store.gameState.value.currentPlayer = computerIndex
+    // Make it the computer's turn
+    // We'll need to update the current player through the store
+    // State should update automatically
 
     if (logEnabled.value) {
       console.log(
-        `Dev Panel: Computer win forced - ${store.gameState.value.players[computerIndex].name} has won with 10000 points`
+        `Dev Panel: Set ${store.gameState.players[computerPlayerIndex].name}'s score to 9900`
       )
     }
   }
@@ -390,68 +347,34 @@ const updateDieValue = (dieIndex: number, event: Event) => {
   const newValue = parseInt(input.value, 10)
 
   if (!isNaN(newValue) && newValue >= 1 && newValue <= 6) {
-    // Set the new die value
-    store.gameState.value.dice[dieIndex].value = newValue
-
-    // Make sure the die is visible
-    store.gameState.value.diceHidden = false
-
-    // Reset die state
-    store.gameState.value.dice[dieIndex].isLocked = false
-    store.gameState.value.dice[dieIndex].isSelected = false
-
-    // Recalculate dice to update valid selections
-    store.calculateRollScore()
-
-    // Update potential score
-    store.calculatePotentialScore()
+    // Use the store's method to update the die value
+    store.updateDieValue(dieIndex, newValue)
 
     // Log the change
     if (logEnabled.value) {
-      console.log(`Dev Panel: Set Die ${dieIndex + 1} to ${newValue}`)
+      console.log(`Dev Panel: Set die ${dieIndex + 1} to ${newValue}`)
     }
   }
 }
 
 // Set all dice to a straight (1-5)
 const setAllDiceToStraight = () => {
-  store.gameState.value.dice.forEach((die, index) => {
-    // Set to values 1, 2, 3, 4, 5 for a straight
-    die.value = index + 1
-    die.isLocked = false
-    die.isSelected = false
-  })
-
-  // Make sure dice are visible
-  store.gameState.value.diceHidden = false
-
-  // Calculate valid dice
-  store.calculateRollScore()
-
-  // Also calculate potential score to update the UI
-  store.calculatePotentialScore()
+  // Set dice to values 1-5
+  for (let i = 0; i < store.gameState.dice.length; i++) {
+    store.updateDieValue(i, i + 1) // 1, 2, 3, 4, 5
+  }
 
   if (logEnabled.value) {
-    console.log("Dev Panel: Set dice to 1-5 straight")
+    console.log("Dev Panel: Set dice to straight (1-5)")
   }
 }
 
 // Set all dice to ones (valuable dice)
 const setAllDiceToOne = () => {
-  store.gameState.value.dice.forEach((die) => {
-    die.value = 1
-    die.isLocked = false
-    die.isSelected = false
-  })
-
-  // Make sure dice are visible
-  store.gameState.value.diceHidden = false
-
-  // Calculate valid dice
-  store.calculateRollScore()
-
-  // Also calculate potential score to update the UI
-  store.calculatePotentialScore()
+  // Set all dice to ones
+  for (let i = 0; i < store.gameState.dice.length; i++) {
+    store.updateDieValue(i, 1)
+  }
 
   if (logEnabled.value) {
     console.log("Dev Panel: Set all dice to ones")
@@ -461,21 +384,10 @@ const setAllDiceToOne = () => {
 // Make a roll with scoring dice (three of a kind + two ones)
 const makeScoringRoll = () => {
   // Set dice to have three 3's and two 1's
-  for (let i = 0; i < store.gameState.value.dice.length; i++) {
-    const die = store.gameState.value.dice[i]
-    die.value = i < 3 ? 3 : 1 // First three are 3's, rest are 1's
-    die.isLocked = false
-    die.isSelected = false
+  for (let i = 0; i < store.gameState.dice.length; i++) {
+    const value = i < 3 ? 3 : 1 // First three are 3's, rest are 1's
+    store.updateDieValue(i, value)
   }
-
-  // Make sure dice are visible
-  store.gameState.value.diceHidden = false
-
-  // Calculate valid dice
-  store.calculateRollScore()
-
-  // Also calculate potential score to update the UI
-  store.calculatePotentialScore()
 
   if (logEnabled.value) {
     console.log("Dev Panel: Created scoring roll with three 3's and two 1's")
@@ -484,21 +396,12 @@ const makeScoringRoll = () => {
 
 // Generate random dice values for unlocked dice
 const randomizeDice = () => {
-  store.gameState.value.dice.forEach((die) => {
+  store.gameState.dice.forEach((die: any, index: number) => {
     if (!die.isLocked) {
-      die.value = Math.floor(Math.random() * 6) + 1
-      die.isSelected = false
+      const randomValue = Math.floor(Math.random() * 6) + 1
+      store.updateDieValue(index, randomValue)
     }
   })
-
-  // Make sure dice are visible
-  store.gameState.value.diceHidden = false
-
-  // Recalculate valid dice
-  store.calculateRollScore()
-
-  // Update potential score
-  store.calculatePotentialScore()
 
   if (logEnabled.value) {
     console.log("Dev Panel: Generated random dice values for unlocked dice")

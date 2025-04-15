@@ -1,15 +1,15 @@
 <script setup lang="ts">
+import { useGameStore } from "./stores/gameStore"
 import GameBoard from "./components/GameBoard.vue"
 import GameMenu from "./components/GameMenu.vue"
-import { useGameStore } from "./composables/useGameStore"
 import { watch } from "vue"
 
 const store = useGameStore()
-const { gameState, showMenu, setPlayers, refreshGameState } = store
+const { gameState } = store
 
 // Watch for player changes for debugging
 watch(
-  () => gameState.value.players,
+  () => gameState.players,
   (newPlayers) => {
     console.log(
       "App.vue detected player change:",
@@ -20,22 +20,11 @@ watch(
   },
   { deep: true }
 )
-
-// Function to handle starting a game with custom player names
-const handleStartGame = (
-  players: Array<{ id: number; name: string; isComputer: boolean }>
-) => {
-  console.log("App.vue: Starting game with players:", players)
-  setPlayers(players)
-
-  // Force a refresh of the game state when switching to GameBoard
-  refreshGameState()
-}
 </script>
 
 <template>
-  <GameMenu v-if="showMenu" @startGame="handleStartGame" />
-  <GameBoard v-else :store="store" />
+  <GameMenu v-if="store.showMenu" />
+  <GameBoard v-else />
 </template>
 
 <style>

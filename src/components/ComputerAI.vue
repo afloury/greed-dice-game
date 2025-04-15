@@ -14,32 +14,30 @@
 
 <script setup lang="ts">
 import { watch, computed, ref } from "vue"
-import { useGameStore } from "../composables/useGameStore"
+import { useGameStore } from "../stores/gameStore"
 
 const statusMessage = ref("Computer is thinking...")
-const store = useGameStore()
-const { isDarkMode } = store
+const { isDarkMode, gameState, playComputerTurn } = useGameStore()
 
 // Simplified computed properties
 const isComputerTurn = computed(
   () =>
-    store.gameState.value.players[store.gameState.value.currentPlayer]
-      .isComputer && !store.gameState.value.isGameOver
+    gameState.players[gameState.currentPlayer].isComputer &&
+    !gameState.isGameOver
 )
 
 const showWaitingMessage = computed(() => {
   // Show when a player bust happens and next player is computer
-  if (store.gameState.value.isBust) {
+  if (gameState.isBust) {
     const nextPlayerIndex =
-      (store.gameState.value.currentPlayer + 1) %
-      store.gameState.value.players.length
-    return store.gameState.value.players[nextPlayerIndex].isComputer
+      (gameState.currentPlayer + 1) % gameState.players.length
+    return gameState.players[nextPlayerIndex].isComputer
   }
   return false
 })
 
 const computerActionText = computed(() => {
-  if (store.gameState.value.isBust && showWaitingMessage.value) {
+  if (gameState.isBust && showWaitingMessage.value) {
     return "Player busted! Computer's turn..."
   }
   return "Computer is thinking..."
@@ -51,7 +49,7 @@ const computerActions = {
     console.log("ComputerAI component: makeDecision called")
     if (isComputerTurn.value) {
       statusMessage.value = "Making move..."
-      store.playComputerTurn()
+      playComputerTurn()
     } else {
       console.log("Not computer's turn")
     }
