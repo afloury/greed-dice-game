@@ -8,8 +8,8 @@ export default defineConfig({
   define: {
     // This ensures import.meta.env.DEV is properly defined at build time
     // Will be true during development and false in production build
-    "import.meta.env.DEV": JSON.stringify(
-      process.env.NODE_ENV === "development"
-    ),
+    // "import.meta.env.DEV": JSON.stringify(
+    //   process.env.NODE_ENV === "development"
+    // ),
   },
 })

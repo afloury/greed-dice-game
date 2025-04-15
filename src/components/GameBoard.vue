@@ -248,7 +248,7 @@
   </div>
 
   <!-- Dev Panel - Only visible in development mode -->
-  <DevPanel />
+  <DevPanel v-if="isDev" />
 </template>
 
 <script setup lang="ts">
@@ -264,6 +264,7 @@ import { computed, onMounted, ref, watch } from "vue"
 
 // Use the store directly to maintain reactivity
 const store = useGameStore()
+const isDev = import.meta.env.DEV
 
 // Initialize i18n
 const { t, isEnglish, toggleLanguage } = useI18n()
