@@ -36,18 +36,19 @@ A Vue 3 implementation of the classic dice game "10,000" (also known as Farkle).
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
 # Start development server
-npm run dev
+pnpm run dev
 
 # Build for production
-npm run build
+pnpm run build
 ```
 
 ## Technologies Used
 
 - Vue 3 with Composition API
+- Pinia (state management)
 - TypeScript
 - Tailwind CSS
 - Vite
@@ -64,16 +65,51 @@ npm run build
 ## Project Structure
 
 ```
+public/                 # Static assets (e.g., dice-roll.mp3, dice.svg)
 src/
-├── components/
-│   ├── GameBoard.vue    # Main game interface
-│   └── ComputerAI.vue   # Computer player logic
-├── composables/
-│   └── useGameStore.ts  # Game state management
-├── types/
-│   └── game.ts          # TypeScript interfaces
-└── style.css            # Global styles
+├── App.vue             # App root
+├── assets/             # Static assets (e.g., vue.svg)
+├── components/         # Vue components
+│   ├── ComputerAI.vue
+│   ├── DevPanel.vue
+│   ├── DiceControls.vue
+│   ├── DiceDisplay.vue
+│   ├── DiceFace.vue
+│   ├── GameBoard.vue
+│   ├── GameMenu.vue
+│   ├── GameScoring.vue
+│   ├── GameSettings.vue
+│   └── HelloWorld.vue
+├── composables/        # (currently empty)
+├── i18n/               # Internationalization files (en.ts, fr.ts, index.ts)
+├── main.ts             # App entry point (sets up Pinia, mounts app)
+├── stores/             # Pinia stores (gameStore.ts)
+├── style.css           # Global styles
+├── types/              # TypeScript interfaces (game.ts)
+├── vite-env.d.ts       # Vite env types
+index.html              # Main HTML file
+vite.config.ts          # Vite config
+pnpm-lock.yaml          # pnpm lockfile
+package.json            # Project metadata & scripts
 ```
+
+### Key Scripts
+
+- `pnpm install` — Install dependencies
+- `pnpm run dev` — Start development server
+- `pnpm run build` — Build for production
+- `pnpm run preview` — Preview production build
+
+### Additional Info
+
+- **State management** is handled by Pinia (see `src/stores/gameStore.ts`).
+- **Internationalization** is available in English and French (see `src/i18n/`).
+- **Audio/Visual assets** are in `public/` and `src/assets/`.
+- **Dev tools**: Includes a `DevPanel` component for debugging or development features.
+- **Type safety**: All logic and data structures are written in TypeScript.
+- **Responsive & Accessible**: The UI is built with Tailwind CSS for responsive design.
+
+---
 
 ## License
 
