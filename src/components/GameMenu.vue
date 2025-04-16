@@ -6,36 +6,19 @@
       <h1 class="text-4xl font-bold text-center mb-6 game-title">
         {{ t("gameTitle") }}
       </h1>
-
       <!-- Game Mode Selection -->
       <div class="mb-8">
         <h2 class="text-xl font-bold mb-4">
           {{ t("gameModes") }}
         </h2>
-        <div class="grid grid-cols-2 gap-4">
-          <button
-            @click="gameMode = 'vs-computer'"
-            :class="[
-              'p-4 rounded-lg transition-all duration-200 game-mode-btn',
-              gameMode === 'vs-computer'
-                ? 'game-button-primary font-bold border-2 border-accent shadow-lg transform -translate-y-1'
-                : 'game-button-secondary border border-neutral-400',
-            ]"
-          >
-            {{ t("vsComputer") }}
-          </button>
-          <button
-            @click="gameMode = 'vs-friend'"
-            :class="[
-              'p-4 rounded-lg transition-all duration-200 game-mode-btn',
-              gameMode === 'vs-friend'
-                ? 'game-button-primary font-bold border-2 border-accent shadow-lg transform -translate-y-1'
-                : 'game-button-secondary border border-neutral-400',
-            ]"
-          >
-            {{ t("vsFriend") }}
-          </button>
-        </div>
+        <SelectorButton
+          :items="[
+            { value: 'vs-computer', text: t('vsComputer') },
+            { value: 'vs-friend', text: t('vsFriend') },
+          ]"
+          :selected-value="gameMode"
+          @update:selected="gameMode = $event"
+        />
       </div>
 
       <!-- Qualification Score Selection -->
@@ -43,21 +26,16 @@
         <h2 class="text-xl font-bold mb-4">
           {{ t("qualificationScore") || "Qualification Score" }}
         </h2>
-        <div class="grid grid-cols-3 gap-4">
-          <button
-            v-for="score in qualificationScoreOptions"
-            :key="score"
-            @click="selectedQualificationScore = score"
-            :class="[
-              'p-4 rounded-lg transition-all duration-200 game-mode-btn',
-              selectedQualificationScore === score
-                ? 'game-button-primary font-bold border-2 border-accent shadow-lg transform -translate-y-1'
-                : 'game-button-secondary border border-neutral-400',
-            ]"
-          >
-            {{ score }}
-          </button>
-        </div>
+        <SelectorButton
+          :items="
+            qualificationScoreOptions.map((score) => ({
+              value: score,
+              text: String(score),
+            }))
+          "
+          :selected-value="selectedQualificationScore"
+          @update:selected="selectedQualificationScore = $event"
+        />
       </div>
 
       <!-- Player Names -->
@@ -163,6 +141,7 @@
 import { ref } from "vue"
 import { useGameStore } from "../stores/gameStore"
 import { useI18n } from "../i18n"
+import SelectorButton from "./SelectorButton.vue"
 
 // Use the game store and i18n directly
 const {
@@ -287,33 +266,5 @@ const handleStartGame = () => {
 .input-field:focus {
   outline: none;
   border-color: var(--color-accent);
-}
-
-.border-accent {
-  border-color: var(--color-accent);
-}
-
-.game-button-secondary:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  transform: translateY(-1px);
-  transition: all 0.2s ease;
-}
-
-.game-mode-btn {
-  font-weight: 500;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.game-mode-btn:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.game-mode-btn.game-button-secondary {
-  background-color: rgba(255, 255, 255, 0.05);
-}
-
-.game-mode-btn.game-button-secondary:hover {
-  border-color: var(--color-accent);
-  background-color: rgba(255, 255, 255, 0.1);
 }
 </style>

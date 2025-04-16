@@ -46,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-import { defineProps, defineEmits } from "vue"
+import { defineEmits } from "vue"
 import { useI18n } from "../i18n"
 
 const props = defineProps({
