@@ -8,7 +8,8 @@
       {
         'game-button-primary font-bold border-2 border-[var(--color-accent)]':
           variant === 'primary',
-        'game-button-secondary border-neutral-400': variant === 'secondary',
+        'game-button-secondary border-neutral-400 bg-neutral-400/10':
+          variant === 'secondary',
       },
       {
         '': size === 'sm',
