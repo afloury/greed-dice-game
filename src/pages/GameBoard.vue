@@ -250,14 +250,15 @@
 <script setup lang="ts">
 import { useGameStore } from "../stores/gameStore"
 import { useI18n } from "../i18n"
-import ComputerAI from "./ComputerAI.vue"
-import GameSettings from "./GameSettings.vue"
-import GameScoring from "./GameScoring.vue"
-import DiceDisplay from "./DiceDisplay.vue"
-import DiceControls from "./DiceControls.vue"
-import DevPanel from "./DevPanel.vue"
+import ComputerAI from "../components/ComputerAI.vue"
+import GameSettings from "../components/GameSettings.vue"
+import GameScoring from "../components/GameScoring.vue"
+import DiceDisplay from "../components/DiceDisplay.vue"
+import DiceControls from "../components/DiceControls.vue"
+import DevPanel from "../components/DevPanel.vue"
 import { computed, onMounted, ref, watch } from "vue"
-import BaseButton from "./BaseButton.vue"
+import BaseButton from "../components/BaseButton.vue"
+import { useRouter } from "vue-router"
 
 // Use the store directly to maintain reactivity
 const store = useGameStore()
@@ -451,6 +452,8 @@ watch(
 )
 
 // Also ensure computer plays after a game reset
+const router = useRouter()
+
 function handleResetGame() {
   console.log(
     "Resetting game with player names:",
@@ -462,6 +465,7 @@ function handleResetGame() {
     store.gameState.players.map((p: any) => p.name)
   )
   // The menu will be shown automatically because we set showMenu to true in resetGame
+  router.push("/")
 }
 
 // Function to test sound

@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { useGameStore } from "./stores/gameStore"
-import GameBoard from "./components/GameBoard.vue"
-import GameMenu from "./components/GameMenu.vue"
 import { watch } from "vue"
 
 const store = useGameStore()
@@ -23,8 +21,7 @@ watch(
 </script>
 
 <template>
-  <GameMenu v-if="store.showMenu" />
-  <GameBoard v-else />
+  <router-view />
 </template>
 
 <style>

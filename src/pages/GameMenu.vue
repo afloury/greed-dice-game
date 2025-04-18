@@ -141,10 +141,11 @@
 
 <script setup lang="ts">
 import { ref } from "vue"
+import { useRouter } from "vue-router"
 import { useGameStore } from "../stores/gameStore"
 import { useI18n } from "../i18n"
-import SelectorButton from "./SelectorButton.vue"
-import BaseButton from "./BaseButton.vue"
+import SelectorButton from "../components/SelectorButton.vue"
+import BaseButton from "../components/BaseButton.vue"
 import { useDark, useToggle } from "@vueuse/core"
 
 // Use the game store and i18n directly
@@ -217,6 +218,8 @@ const generateRandomName = (playerNumber: 1 | 2) => {
 }
 
 // Start the game with current players
+const router = useRouter()
+
 const handleStartGame = () => {
   // Set default names if empty
   let player1NameValue = player1Name.value.trim()
@@ -255,6 +258,7 @@ const handleStartGame = () => {
     },
   ]
   startGame(players)
+  router.push("/game")
 }
 </script>
 
