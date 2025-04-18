@@ -26,7 +26,7 @@ import { useI18n } from "../i18n"
 import BaseButton from "./BaseButton.vue"
 import RollIcon from "./icons/RollIcon.vue"
 
-const props = defineProps({
+defineProps({
   isRolling: Boolean,
   canRoll: Boolean,
   isFirstRoll: Boolean,
