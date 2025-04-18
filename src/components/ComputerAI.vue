@@ -3,8 +3,8 @@
     v-if="isComputerTurn || showWaitingMessage"
     class="border p-3 rounded-lg text-center mb-4"
     :class="{
-      'bg-yellow-50 border-yellow-200': !isDarkMode,
-      'bg-yellow-900 border-yellow-800': isDarkMode,
+      'bg-yellow-50 border-yellow-200': !isDark,
+      'bg-yellow-900 border-yellow-800': isDark,
     }"
   >
     <p class="text-lg font-semibold">{{ computerActionText }}</p>
@@ -15,9 +15,11 @@
 <script setup lang="ts">
 import { watch, computed, ref } from "vue"
 import { useGameStore } from "../stores/gameStore"
+import { useDark } from "@vueuse/core"
 
 const statusMessage = ref("Computer is thinking...")
-const { isDarkMode, gameState, playComputerTurn } = useGameStore()
+const { gameState, playComputerTurn } = useGameStore()
+const isDark = useDark()
 
 // Simplified computed properties
 const isComputerTurn = computed(

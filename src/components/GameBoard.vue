@@ -13,19 +13,18 @@
               t(`phases.${store.gameState.gamePhase}`)
             }}</span>
           </div>
-          <div class="flex gap-2">
+          <div class="flex gap-2 items-center">
             <button
               @click="toggleSettings"
-              class="p-2 rounded-lg font-semibold transition-all duration-200 game-icon-button"
+              class="p-2 rounded-lg font-semibold transition-all duration-200 game-icon-button mr-2"
             >
               ⚙️
             </button>
-            <button
+            <BaseButton
               @click="handleResetGame"
-              class="px-4 py-2 rounded-lg font-semibold transition-all duration-200 game-button-secondary"
-            >
-              {{ t("newGame") }}
-            </button>
+              variant="secondary"
+              :label="t('newGame')"
+            />
           </div>
         </div>
       </div>
@@ -33,11 +32,9 @@
       <!-- Settings Modal -->
       <GameSettings
         :show-settings="showSettings"
-        :is-dark-mode="store.isDarkMode"
         :is-english="isEnglish"
         v-model:sound-volume="soundVolume"
         @update:show-settings="showSettings = $event"
-        @toggle-dark-mode="store.toggleDarkMode"
         @toggle-language="toggleLanguage"
         @test-sound="testSound"
       />
@@ -93,12 +90,11 @@
           <p class="text-xl mb-8">
             {{ t("finalScore") }}: {{ getWinnerScore() }}
           </p>
-          <button
+          <BaseButton
             @click="handleResetGame"
-            class="px-6 py-3 rounded-lg font-semibold text-lg transition-all duration-200 game-button-primary"
-          >
-            {{ t("playAgain") }}
-          </button>
+            variant="secondary"
+            :label="t('playAgain')"
+          />
         </div>
       </div>
 
@@ -194,7 +190,7 @@
         </div>
 
         <!-- Dice Legend -->
-        <div
+        <!-- <div
           class="mt-6 p-3 text-xs grid grid-cols-2 gap-2 max-w-md mx-auto rounded-lg legend-panel"
         >
           <div class="flex items-center">
@@ -215,7 +211,7 @@
             ></div>
             <span>{{ t("notScorable") }}</span>
           </div>
-        </div>
+        </div> -->
       </div>
 
       <!-- Game Rules -->
@@ -261,6 +257,7 @@ import DiceDisplay from "./DiceDisplay.vue"
 import DiceControls from "./DiceControls.vue"
 import DevPanel from "./DevPanel.vue"
 import { computed, onMounted, ref, watch } from "vue"
+import BaseButton from "./BaseButton.vue"
 
 // Use the store directly to maintain reactivity
 const store = useGameStore()

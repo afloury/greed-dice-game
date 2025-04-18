@@ -10,8 +10,8 @@
           <h2>{{ t("settings") }}</h2>
           <button @click="closeSettings">×</button>
         </div>
-        <div class="settings-modal-body">
-          <div class="settings-section">
+        <div class="p-6">
+          <div class="mb-2">
             <h3 class="text-lg font-medium mb-4">
               {{ t("display") }}
             </h3>
@@ -21,7 +21,7 @@
                 @click="toggleDarkMode"
                 class="p-2 rounded-lg font-semibold transition-all duration-200 game-icon-button"
               >
-                {{ isDarkMode ? "☀️" : "🌙" }}
+                {{ isDark ? "☀️" : "🌙" }}
               </button>
             </div>
             <div class="flex items-center justify-between mb-6">
@@ -56,20 +56,21 @@
             </div>
             <div class="volume-value">{{ soundVolume }}%</div>
 
-            <div class="text-center mt-3">
-              <button
+            <div class="text-center mt-6">
+              <BaseButton
                 @click="testSound"
-                class="game-button-secondary test-sound-btn"
-              >
-                {{ t("testSound") }}
-              </button>
+                variant="secondary"
+                :label="t('testSound')"
+              />
             </div>
           </div>
         </div>
         <div class="settings-modal-footer">
-          <button @click="closeSettings" class="game-button close-btn">
-            {{ t("close") }}
-          </button>
+          <BaseButton
+            @click="closeSettings"
+            variant="secondary"
+            :label="t('close')"
+          />
         </div>
       </div>
     </div>
@@ -79,10 +80,11 @@
 <script setup lang="ts">
 import { defineEmits } from "vue"
 import { useI18n } from "../i18n"
+import { useDark, useToggle } from "@vueuse/core"
+import BaseButton from "./BaseButton.vue"
 
 defineProps({
   showSettings: Boolean,
-  isDarkMode: Boolean,
   isEnglish: Boolean,
   soundVolume: {
     type: Number,
@@ -90,9 +92,10 @@ defineProps({
   },
 })
 
+const isDark = useDark()
+const toggleDark = useToggle(isDark)
 const emit = defineEmits([
   "update:showSettings",
-  "toggleDarkMode",
   "toggleLanguage",
   "update:soundVolume",
   "testSound",
@@ -106,7 +109,7 @@ const closeSettings = () => {
 }
 
 const toggleDarkMode = () => {
-  emit("toggleDarkMode")
+  toggleDark()
 }
 
 const toggleLanguage = () => {
@@ -167,14 +170,6 @@ const testSound = () => {
   cursor: pointer;
   padding: 0 0.5rem;
   line-height: 1;
-}
-
-.settings-modal-body {
-  padding: 1.5rem;
-}
-
-.settings-section {
-  margin-bottom: 1.5rem;
 }
 
 .volume-slider {

@@ -1,6 +1,5 @@
 import { defineStore } from "pinia"
 import { ref, computed, watch } from "vue"
-import { useDark, useToggle } from "@vueuse/core"
 import type { GameState } from "../types/game"
 import { useI18n } from "../i18n"
 
@@ -16,16 +15,6 @@ export const useGameStore = defineStore("game", () => {
   // Store state
   const selectedQualificationScore = ref(DEFAULT_QUALIFICATION_SCORE)
   const showMenu = ref(true)
-
-  // Use VueUse's useDark for dark mode management
-  // This automatically syncs with system preference
-  const isDark = useDark({
-    selector: "html",
-    attribute: "class",
-    valueDark: "dark",
-    valueLight: "",
-  })
-  const toggleDark = useToggle(isDark)
 
   const gameState = ref<GameState>({
     players: [
@@ -214,11 +203,6 @@ export const useGameStore = defineStore("game", () => {
     if (MIN_QUALIFYING_SCORE_OPTIONS.includes(score)) {
       selectedQualificationScore.value = score
     }
-  }
-
-  function toggleDarkMode() {
-    // Use VueUse's toggle function
-    toggleDark()
   }
 
   function setPlayers(
@@ -1369,7 +1353,6 @@ export const useGameStore = defineStore("game", () => {
     // State
     gameState,
     selectedQualificationScore,
-    isDarkMode: isDark,
     showMenu,
 
     // Computed
@@ -1384,7 +1367,6 @@ export const useGameStore = defineStore("game", () => {
 
     // Methods
     setQualificationScore,
-    toggleDarkMode,
 
     setPlayers,
     setRollCallback,

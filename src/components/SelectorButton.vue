@@ -1,25 +1,21 @@
 <template>
   <div :class="containerClass">
-    <button
+    <BaseButton
       v-for="item in items"
       :key="item.value"
       @click="$emit('update:selected', item.value)"
-      :class="[
-        'p-4 rounded-lg transition-all duration-200 game-mode-btn',
-        selectedValue === item.value
-          ? 'game-button-primary font-bold border-2 border-accent shadow-lg transform -translate-y-1'
-          : 'game-button-secondary border border-neutral-400',
-      ]"
-      type="button"
-    >
-      {{ item.text }}
-    </button>
+      :label="item.text"
+      :variant="selectedValue === item.value ? 'primary' : 'secondary'"
+      :size="direction === 'col' ? 'lg' : 'sm'"
+      :disabled="disabled"
+      :selected="selectedValue === item.value"
+    />
   </div>
-  {{ containerClass }}
 </template>
 
 <script setup lang="ts">
 import { computed } from "vue"
+import BaseButton from "./BaseButton.vue"
 
 interface SelectorItem {
   value: any

@@ -12,6 +12,7 @@
   --color-warning: #f3aa18;
   --color-danger: #e63946;
   --color-shadow: rgba(0, 0, 0, 0.15);
+  --hover-bg: rgba(0, 0, 0, 0.1);
 }
 
 .dark {
@@ -26,6 +27,7 @@
   --color-warning: #ffb627;
   --color-danger: #ff5a5a;
   --color-shadow: rgba(0, 0, 0, 0.3);
+  --hover-bg: rgb(255, 255, 255, 0.1);
 }
 
 body {
@@ -61,66 +63,10 @@ body {
     );
 }
 
-/* Game UI specific utilities */
-
-.border-accent {
-  border-color: var(--color-accent);
-}
-
-.game-mode-btn {
-  font-weight: 500;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.game-mode-btn:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-}
-
-.game-mode-btn.game-button-secondary {
-  background-color: rgba(255, 255, 255, 0.05);
-}
-
-.game-mode-btn.game-button-secondary:hover {
-  border-color: var(--color-accent);
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
 .game-panel {
   background-color: var(--color-card);
   border-radius: 12px;
   box-shadow: 0 8px 20px var(--color-shadow), 0 6px 6px rgba(0, 0, 0, 0.1);
   border: 1px solid var(--color-border);
   overflow: hidden;
-}
-
-.game-button {
-  background-color: var(--color-accent);
-  color: white;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  font-weight: 700;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.game-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
-}
-
-.game-button:active {
-  transform: translateY(1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.game-button-secondary {
-  background-color: var(--color-accent-secondary);
-}
-
-.game-button-secondary:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  transform: translateY(-1px);
-  transition: all 0.2s ease;
 }

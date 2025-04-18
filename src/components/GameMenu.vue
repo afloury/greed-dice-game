@@ -117,22 +117,24 @@
               {{ isEnglish ? "🇫🇷" : "🇬🇧" }}
             </button>
             <button
-              @click="toggleDarkMode"
+              @click="toggleDark()"
               class="p-2 rounded-lg font-semibold transition-all duration-200 game-icon-button ml-2"
             >
-              {{ isDarkMode ? "☀️" : "🌙" }}
+              {{ isDark ? "☀️" : "🌙" }}
             </button>
           </div>
         </div>
       </div>
 
       <!-- Start Game Button -->
-      <button
+      <BaseButton
         @click="handleStartGame"
-        class="w-full p-4 rounded-lg font-bold text-xl game-button-primary transition-all duration-200"
+        class="mt-6"
+        size="lg"
+        variant="primary"
       >
         {{ t("newGame") }}
-      </button>
+      </BaseButton>
     </div>
   </div>
 </template>
@@ -142,16 +144,15 @@ import { ref } from "vue"
 import { useGameStore } from "../stores/gameStore"
 import { useI18n } from "../i18n"
 import SelectorButton from "./SelectorButton.vue"
+import BaseButton from "./BaseButton.vue"
+import { useDark, useToggle } from "@vueuse/core"
 
 // Use the game store and i18n directly
-const {
-  isDarkMode,
-  toggleDarkMode,
-  MIN_QUALIFYING_SCORE_OPTIONS,
-  setQualificationScore,
-  startGame,
-} = useGameStore()
+const { MIN_QUALIFYING_SCORE_OPTIONS, setQualificationScore, startGame } =
+  useGameStore()
 const { isEnglish, toggleLanguage, t } = useI18n()
+const isDark = useDark()
+const toggleDark = useToggle(isDark)
 
 // Game mode (vs friend or vs computer)
 const gameMode = ref<"vs-computer" | "vs-friend">("vs-computer")
