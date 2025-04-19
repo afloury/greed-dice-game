@@ -204,7 +204,6 @@
 import { ref, watch } from "vue"
 import { useRouter } from "vue-router"
 import { useGameStore } from "../stores/gameStore"
-import { setGameState } from "../utils/firebase"
 import { useI18n } from "../i18n"
 import SelectorButton from "../components/SelectorButton.vue"
 import BaseButton from "../components/BaseButton.vue"

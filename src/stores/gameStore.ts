@@ -4,27 +4,6 @@ import type { GameState } from "../types/game"
 import { useI18n } from "../i18n"
 import { useGameState, setGameState, updateGameState } from "../utils/firebase"
 
-// Add new function
-function canModifyGameState() {
-  if (!multiplayer.value) return true
-  
-  if (multiplayer.value.role === "host") {
-    return gameState.value.currentPlayer === 0
-  } else {
-    return gameState.value.currentPlayer === 1
-  }
-}
-
-// Add new function
-function updateJoiningPlayerName(name: string) {
-  if (!multiplayer.value || multiplayer.value.role !== "join") return
-  
-  const code = multiplayer.value.code
-  updateGameState(code, {
-    "players/1/name": name,
-  })
-}
-
 // Constants moved outside the store
 const MIN_QUALIFYING_SCORE_OPTIONS = [500, 750, 1000]
 const WINNING_SCORE = 10000
@@ -271,6 +250,27 @@ export const useGameStore = defineStore("game", () => {
       }))
 
     // Force reactivity
+  }
+
+  // Add new function
+  function canModifyGameState() {
+    if (!multiplayer.value) return true
+
+    if (multiplayer.value.role === "host") {
+      return gameState.value.currentPlayer === 0
+    } else {
+      return gameState.value.currentPlayer === 1
+    }
+  }
+
+  // Add new function
+  function updateJoiningPlayerName(name: string) {
+    if (!multiplayer.value || multiplayer.value.role !== "join") return
+
+    const code = multiplayer.value.code
+    updateGameState(code, {
+      "players/1/name": name,
+    })
   }
 
   // Roll callback function for animations
@@ -1381,9 +1381,9 @@ export const useGameStore = defineStore("game", () => {
     if (multiplayer.value && multiplayer.value.unbind)
       multiplayer.value.unbind()
     multiplayer.value = { code, role: "host" }
-    
+
     setGameState(code, gameState.value)
-    
+
     const stop = watch(
       gameState,
       (val) => {

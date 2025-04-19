@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app"
-import { getDatabase, ref, get, set, remove, update } from "firebase/database"
+import { getDatabase, ref, set, remove, update } from "firebase/database"
 
 // Add new function
 export function updateGameState(code: string, updates: any) {
