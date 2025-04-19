@@ -351,9 +351,7 @@ const handleStartGame = () => {
     if (multiplayerRole.value === "join") {
       setTimeout(() => {
         const store = useGameStore()
-        const state = JSON.parse(JSON.stringify(store.gameState))
-        state.players[1].name = player2Name.value.trim() || t("player2")
-        setGameState(multiplayerCode.value, state)
+        store.updateJoiningPlayerName(player2Name.value.trim() || t("player2"))
       }, 300)
     }
     localStorage.setItem("multiplayerRole", multiplayerRole.value)
