@@ -1,5 +1,5 @@
 <template>
-  <div>Playground</div>
+  <div>Playground2</div>
   <!-- <pre>{{ myObject }}</pre>
   <BaseButton variant="secondary" @click="updateObject({ test: 'test' })">
     Update Object
