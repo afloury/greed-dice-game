@@ -14,6 +14,10 @@ export interface Die {
 }
 
 export interface GameState {
+  createdAt: string;
+  updatedAt: string;
+  waitingForPlayer2?: boolean;
+  qualificationScore: number
   players: Player[]
   currentPlayer: number
   currentTurnScore: number

@@ -1,4 +1,7 @@
 export default {
+  waitingForPlayer2: "Waiting for player 2 to join...",
+  waitingForPlayer2Desc:
+    "Share the game code ({0}) with your friend. The game will start when they join.",
   // Game title and phases
   gameTitle: "10,000 Dice Game",
   currentPhase: "Current Phase:",
@@ -18,6 +21,8 @@ export default {
   settings: "Settings",
   close: "Close",
   playAgain: "Play Again",
+  gameNotFound: "Game not found",
+  gameNotFoundDesc: "The requested game does not exist or has already ended.",
   wonTheGame: "won the game",
   finalScore: "Final Score",
   devPanel: "Developer Panel",

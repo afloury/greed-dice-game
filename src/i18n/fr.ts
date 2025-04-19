@@ -1,4 +1,7 @@
 export default {
+  waitingForPlayer2: "En attente du joueur 2...",
+  waitingForPlayer2Desc:
+    "Partagez le code de la partie ({0}) avec votre ami. La partie commencera dès qu’il aura rejoint.",
   // Game title and phases
   gameTitle: "Jeu de Dés 10,000",
   currentPhase: "Phase Actuelle:",
@@ -17,7 +20,9 @@ export default {
   createGame: "Créer la partie",
   settings: "Paramètres",
   close: "Fermer",
-  playAgain: "Jouer à Nouveau",
+  playAgain: "Rejouer",
+  gameNotFound: "Partie introuvable",
+  gameNotFoundDesc: "La partie demandée n'existe pas ou est déjà terminée.",
   wonTheGame: "a gagné la partie",
   finalScore: "Score Final",
   devPanel: "Panneau Développeur",

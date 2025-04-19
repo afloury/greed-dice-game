@@ -1,5 +1,24 @@
 <template>
   <div class="min-h-screen p-4 game-background">
+    <!-- Game Not Found Overlay with loader -->
+    <div v-if="gameNotFound" class="game-over-screen">
+      <div
+        v-if="showNotFoundLoader"
+        class="game-over-content flex flex-col items-center justify-center"
+      >
+        <div class="loader mb-6" />
+        <span class="text-lg text-accent-secondary">{{ t("loading") }}...</span>
+      </div>
+      <div v-else class="game-over-content">
+        <h2 class="text-3xl font-bold mb-4">{{ t("gameNotFound") }}</h2>
+        <p class="mb-8">{{ t("gameNotFoundDesc") }}</p>
+        <BaseButton
+          @click="router.push('/')"
+          variant="primary"
+          :label="t('newGame')"
+        />
+      </div>
+    </div>
     <div class="max-w-4xl mx-auto">
       <!-- Game Header -->
       <div class="game-panel p-6 mb-6">
@@ -98,8 +117,21 @@
         </div>
       </div>
 
+      <!-- Show waiting message if host is waiting for player 2 -->
+      <div
+        v-if="store.isWaitingForPlayer2"
+        class="game-panel p-6 mb-6 text-center"
+      >
+        <h2 class="text-2xl font-bold mb-4 text-accent">
+          {{ t("waitingForPlayer2") }}
+        </h2>
+        <p class="text-lg">
+          {{ t("waitingForPlayer2Desc", [store.multiplayer?.code || ""]) }}
+        </p>
+      </div>
+
       <!-- Game Board -->
-      <div class="game-panel p-6 mb-6">
+      <div v-else class="game-panel p-6 mb-6">
         <!-- Scoring -->
         <GameScoring
           :current-turn-score="store.gameState.currentTurnScore"
@@ -259,6 +291,7 @@ import DevPanel from "../components/DevPanel.vue"
 import { computed, onMounted, ref, watch } from "vue"
 import BaseButton from "../components/BaseButton.vue"
 import { useRouter, useRoute } from "vue-router"
+import { useGameState } from "../utils/firebase"
 
 // Use the store directly to maintain reactivity
 const store = useGameStore()
@@ -270,14 +303,39 @@ onMounted(() => {
   if (code) {
     // Determine role: if joining from menu, should be join; if host, should be host
     // You can store the role in localStorage or as a query param when navigating
-    const role = localStorage.getItem("multiplayerRole") || "join"
-    if (role === "host") {
-      store.hostMultiplayerGame(code)
-    } else {
-      store.joinMultiplayerGame(code)
-    }
+    const role =
+      localStorage.getItem("multiplayerRole") === "host" ? "host" : "join"
+    store.joinGame(code, role, false)
   }
 })
+
+// Loader for not found modal
+const showNotFoundLoader = ref(true)
+
+// Computed property to detect if the game does not exist
+const gameNotFound = computed(() => {
+  // If we're in multiplayer mode and the code param exists, but there is no game state or no players, consider it not found
+  const code = route.params.code as string | undefined
+  if (!code) return false
+  // If the multiplayer code does not match or game state is missing/empty
+  if (!store.multiplayer || store.multiplayer.code !== code) return false
+  // If game state is missing or has no players, consider it not found
+  const { data: remoteState } = useGameState(code)
+  return !remoteState.value
+})
+
+// Watch for gameNotFound to show loader for 1 second
+watch(gameNotFound, (val) => {
+  if (val) {
+    showNotFoundLoader.value = true
+    setTimeout(() => {
+      showNotFoundLoader.value = false
+    }, 1000)
+  } else {
+    showNotFoundLoader.value = true
+  }
+})
+
 const isDev = import.meta.env.DEV
 
 // Initialize i18n
@@ -534,6 +592,31 @@ const handleRollDice = () => {
 </script>
 
 <style scoped>
+.loader {
+  border: 6px solid #eee;
+  border-top: 6px solid var(--color-accent);
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.game-not-found-message {
+  color: var(--color-danger);
+  font-size: 1.5rem;
+  text-align: center;
+  margin-top: 4rem;
+}
+
 /* ... */
 /* Game-specific styles */
 .game-background {

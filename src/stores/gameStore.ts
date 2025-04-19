@@ -2,7 +2,12 @@ import { defineStore } from "pinia"
 import { ref, computed, watch } from "vue"
 import type { GameState } from "../types/game"
 import { useI18n } from "../i18n"
-import { useGameState, setGameState, updateGameState } from "../utils/firebase"
+import {
+  useGameState,
+  setGameState,
+  updateGameState,
+  deleteGameState,
+} from "../utils/firebase"
 
 // Constants moved outside the store
 const MIN_QUALIFYING_SCORE_OPTIONS = [500, 750, 1000]
@@ -21,10 +26,12 @@ export const useGameStore = defineStore("game", () => {
   const { isEnglish, toggleLanguage, t } = useI18n()
 
   // Store state
-  const selectedQualificationScore = ref(DEFAULT_QUALIFICATION_SCORE)
+  // Removed selectedQualificationScore. Now using gameState.value.qualificationScore everywhere.
   const showMenu = ref(true)
 
   const gameState = ref<GameState>({
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     players: [
       {
         id: 0,
@@ -59,16 +66,24 @@ export const useGameStore = defineStore("game", () => {
     isBust: false,
     bustMessage: "",
     diceHidden: true, // Initially hide dice until first roll
+    qualificationScore: DEFAULT_QUALIFICATION_SCORE, // NEW: Syncs via Firebase
   })
 
   // Computed values
-  const MIN_QUALIFYING_SCORE = computed(() => selectedQualificationScore.value)
+  const MIN_QUALIFYING_SCORE = computed(
+    () => gameState.value.qualificationScore
+  )
 
   const currentPlayer = computed(() => {
     return gameState.value.players[gameState.value.currentPlayer]
   })
 
   const isPlayerTurn = computed(() => {
+    // Multiplayer: Only allow if it's this client's turn
+    if (multiplayer.value) {
+      return canModifyGameState()
+    }
+    // Single player: allow if not computer
     return !currentPlayer.value.isComputer
   })
 
@@ -104,6 +119,9 @@ export const useGameStore = defineStore("game", () => {
     // Can't keep score if there's no potential score
     if (gameState.value.potentialScore <= 0) return false
 
+    // Can't keep score if waiting for player 2 in multiplayer
+    if (gameState.value.waitingForPlayer2) return false
+
     // Cannot keep score if there's a bust
     if (gameState.value.isBust) return false
     // Check qualification status
@@ -132,6 +150,10 @@ export const useGameStore = defineStore("game", () => {
       return t("notYourTurn")
     }
 
+    if (gameState.value.waitingForPlayer2) {
+      return t("waitingForPlayer2")
+    }
+
     if (!gameState.value.dice.some((die) => !die.isLocked)) {
       return t("allDiceLocked")
     }
@@ -149,6 +171,10 @@ export const useGameStore = defineStore("game", () => {
 
     return t("rollDiceTooltip")
   })
+
+  const isWaitingForPlayer2 = computed(
+    () => !!gameState.value.waitingForPlayer2
+  )
 
   // Watch for language changes
   watch(isEnglish, () => {
@@ -209,12 +235,16 @@ export const useGameStore = defineStore("game", () => {
   // Functions
   function setQualificationScore(score: number) {
     if (MIN_QUALIFYING_SCORE_OPTIONS.includes(score)) {
-      selectedQualificationScore.value = score
+      gameState.value.qualificationScore = score
+      // Sync to Firebase if multiplayer
+      if (multiplayer.value)
+        setGameState(multiplayer.value.code, gameState.value)
     }
   }
 
   function setPlayers(
-    players: Array<{ id: number; name: string; isComputer: boolean }>
+    players: Array<{ id: number; name: string; isComputer: boolean }>,
+    qualificationScore?: number
   ) {
     // Update the players array with new player info
     gameState.value.players = players.map((player) => {
@@ -238,6 +268,10 @@ export const useGameStore = defineStore("game", () => {
     gameState.value.gamePhase = "QUALIFICATION"
     gameState.value.isGameOver = false
     gameState.value.diceHidden = true
+    gameState.value.qualificationScore =
+      qualificationScore ??
+      gameState.value.qualificationScore ??
+      DEFAULT_QUALIFICATION_SCORE
 
     // Reset dice
     gameState.value.dice = Array(5)
@@ -281,8 +315,8 @@ export const useGameStore = defineStore("game", () => {
   }
 
   function rollDice() {
-    // Don't allow rolling if it's a bust
-    if (gameState.value.isBust) return
+    // Don't allow rolling if it's a bust or waiting for player 2
+    if (gameState.value.isBust || gameState.value.waitingForPlayer2) return
 
     // Notify about dice to be rolled
     if (rollCallback) {
@@ -615,7 +649,10 @@ export const useGameStore = defineStore("game", () => {
   }
 
   function keepScore() {
-    if (!canKeepScore.value) return
+    if (!canModifyGameState() || gameState.value.waitingForPlayer2) return
+
+    // Only allow keeping score if not bust
+    if (gameState.value.isBust) return
 
     const player = currentPlayer.value
     const turnTotal =
@@ -687,8 +724,6 @@ export const useGameStore = defineStore("game", () => {
 
     // Change to next player
     const oldPlayerIndex = gameState.value.currentPlayer
-    gameState.value.currentPlayer =
-      (gameState.value.currentPlayer + 1) % gameState.value.players.length
 
     console.log(
       `Turn changed from ${gameState.value.players[oldPlayerIndex].name} to ${currentPlayer.value.name}`
@@ -703,6 +738,9 @@ export const useGameStore = defineStore("game", () => {
 
     // Set diceHidden to true after a turn ends
     gameState.value.diceHidden = true
+    gameState.value.currentPlayer =
+      (gameState.value.currentPlayer + 1) % gameState.value.players.length
+    if (multiplayer.value) setGameState(multiplayer.value.code, gameState.value)
   }
 
   function playComputerTurn() {
@@ -787,25 +825,8 @@ export const useGameStore = defineStore("game", () => {
             console.log(
               `Computer cannot keep score: ${potentialTotalScore} would exceed 10,000 points`
             )
-
-            // If there are no dice selected (safe dice) but we have points banked, keep them
-            if (
-              gameState.value.potentialScore === 0 &&
-              gameState.value.currentTurnScore > 0
-            ) {
-              console.log(
-                `Computer keeping safe score: ${gameState.value.currentTurnScore}`
-              )
-              keepScore()
-              return
-            }
-
-            // If no safe options, roll again
-            console.log(`Computer rolling again to try for a better score`)
-            playComputerTurn()
-            return
+            playComputerTurn() // Roll again and try for a better combination
           }
-
           // We're still under 10,000 - determine whether to roll or keep
           const unlockedDiceCount = gameState.value.dice.filter(
             (die) => !die.isLocked && !die.isSelected
@@ -1243,7 +1264,7 @@ export const useGameStore = defineStore("game", () => {
     }
   }
 
-  function resetGame() {
+  function resetGame(qualificationScore?: number) {
     // Store the current settings before resetting
     const player2IsComputer =
       gameState.value.players.length > 1
@@ -1287,46 +1308,56 @@ export const useGameStore = defineStore("game", () => {
 
     // Keep the current qualification score (don't reset it)
     // We don't need to explicitly preserve it since it's a separate ref
-
-    gameState.value = {
-      players: [
-        {
-          id: 0,
-          name: usePlayer1Name,
-          totalScore: 0,
-          isQualified: false,
-          isComputer: false,
-        },
-        {
-          id: 1,
-          name: usePlayer2Name,
-          totalScore: 0,
-          isQualified: false,
-          isComputer: player2IsComputer, // Preserve the computer/human mode
-        },
-      ],
-      currentPlayer: 0,
-      currentTurnScore: 0,
-      dice: Array(5)
-        .fill(null)
-        .map(() => ({
-          value: 1,
-          isSelected: false,
-          isLocked: false,
-          isValidSelection: false,
-        })),
-      gamePhase: "QUALIFICATION",
-      isGameOver: false,
-      lastRollScore: 0,
-      potentialScore: 0,
-      isFirstRoll: true,
-      isBust: false,
-      bustMessage: "",
-      diceHidden: true, // Start with hidden dice
+    if (multiplayer.value?.code) {
+      deleteGameState(multiplayer.value.code)
     }
-
     // Show menu again
     showMenu.value = true
+    setTimeout(() => {
+      gameState.value = {
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        qualificationScore:
+          qualificationScore ??
+          gameState.value.qualificationScore ??
+          DEFAULT_QUALIFICATION_SCORE,
+        players: [
+          {
+            id: 0,
+            name: usePlayer1Name,
+            totalScore: 0,
+            isQualified: false,
+            isComputer: false,
+          },
+          {
+            id: 1,
+            name: usePlayer2Name,
+            totalScore: 0,
+            isQualified: false,
+            isComputer: player2IsComputer, // Preserve the computer/human mode
+          },
+        ],
+        currentPlayer: 0,
+        currentTurnScore: 0,
+        dice: Array(5)
+          .fill(null)
+          .map(() => ({
+            value: 1,
+            isSelected: false,
+            isLocked: false,
+            isValidSelection: false,
+          })),
+        gamePhase: "QUALIFICATION",
+        isGameOver: false,
+        lastRollScore: 0,
+        potentialScore: 0,
+        isFirstRoll: true,
+        isBust: false,
+        bustMessage: "",
+        diceHidden: true, // Start with hidden dice
+        waitingForPlayer2: false, // Reset waitingForPlayer2
+      }
+    }, 1000)
   }
 
   const updatePlayerScore = (playerIndex: number, score: number) => {
@@ -1377,42 +1408,59 @@ export const useGameStore = defineStore("game", () => {
     )
   }
 
-  function hostMultiplayerGame(code: string) {
+  function joinGame(code: string, role: "host" | "join", startGame?: boolean) {
     if (multiplayer.value && multiplayer.value.unbind)
       multiplayer.value.unbind()
-    multiplayer.value = { code, role: "host" }
+    multiplayer.value = { code, role }
+    if (role === "host" && startGame) {
+      // Initial push to Firebase
+      gameState.value.waitingForPlayer2 = true
+      gameState.value.createdAt = new Date().toISOString()
+      gameState.value.updatedAt = new Date().toISOString()
+      setGameState(code, gameState.value)
+    }
+    // Host waits for player 2, guest disables waiting
+    if (role === "join") {
+      gameState.value.waitingForPlayer2 = false
+      // Sync to Firebase
+      updateGameState(code, { waitingForPlayer2: false })
+    }
+    // --- NEW: Bind to Firebase game state reactively, just like joiner ---
+    const { data: remoteState, stop: stopBinding } = useGameState(code)
+    let updatingFromRemote = false
 
-    setGameState(code, gameState.value)
+    // Watch remote state and update local state
+    const stopRemote = watch(
+      remoteState,
+      (val) => {
+        if (
+          isGameState(val) &&
+          JSON.stringify(val) !== JSON.stringify(gameState.value)
+        ) {
+          updatingFromRemote = true
+          gameState.value = val
+          updatingFromRemote = false
+        }
+      },
+      { deep: true }
+    )
 
-    const stop = watch(
+    // Watch local state and push to Firebase if host makes changes
+    const stopLocal = watch(
       gameState,
       (val) => {
-        if (canModifyGameState() || showMenu.value) {
+        // Avoid pushing changes that originated from remote
+        if (!updatingFromRemote && (canModifyGameState() || showMenu.value)) {
+          gameState.value.updatedAt = new Date().toISOString()
           setGameState(code, val)
         }
       },
       { deep: true }
     )
-    multiplayer.value.unbind = stop
-  }
 
-  function joinMultiplayerGame(code: string) {
-    if (multiplayer.value && multiplayer.value.unbind)
-      multiplayer.value.unbind()
-    multiplayer.value = { code, role: "join" }
-    // Bind to Firebase game state reactively
-    const { data: remoteState, stop: stopBinding } = useGameState(code)
-    const stop = watch(
-      remoteState,
-      (val) => {
-        if (isGameState(val)) {
-          gameState.value = val
-        }
-      },
-      { deep: true }
-    )
     multiplayer.value.unbind = () => {
-      stop()
+      stopRemote()
+      stopLocal()
       stopBinding()
     }
   }
@@ -1426,13 +1474,17 @@ export const useGameStore = defineStore("game", () => {
   // Patch startGame to accept multiplayer
   function startGame(
     players: Array<{ id: number; name: string; isComputer: boolean }>,
-    options?: { mode?: string; code?: string; role?: "host" | "join" }
+    options?: {
+      mode?: string
+      code?: string
+      role?: "host" | "join"
+      qualificationScore?: number
+    }
   ) {
-    setPlayers(players)
+    setPlayers(players, options?.qualificationScore)
     showMenu.value = false
     if (options?.mode === "multiplayer" && options.code && options.role) {
-      if (options.role === "host") hostMultiplayerGame(options.code)
-      else joinMultiplayerGame(options.code)
+      joinGame(options.code, options.role, true)
     } else {
       leaveMultiplayerGame()
     }
@@ -1442,7 +1494,6 @@ export const useGameStore = defineStore("game", () => {
   return {
     // State
     gameState,
-    selectedQualificationScore,
     showMenu,
 
     // Computed
@@ -1454,6 +1505,7 @@ export const useGameStore = defineStore("game", () => {
     canRoll,
     canKeepScore,
     rollButtonTooltip,
+    isWaitingForPlayer2,
 
     // Methods
     setQualificationScore,
@@ -1476,11 +1528,10 @@ export const useGameStore = defineStore("game", () => {
     setGameOver,
     updateDieValue,
     startGame,
-    hostMultiplayerGame,
-    joinMultiplayerGame,
     leaveMultiplayerGame,
     multiplayer,
     updateJoiningPlayerName,
     canModifyGameState,
+    joinGame,
   }
 })
