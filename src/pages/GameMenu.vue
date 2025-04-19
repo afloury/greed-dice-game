@@ -204,7 +204,6 @@
 import { ref, watch } from "vue"
 import { useRouter } from "vue-router"
 import { useGameStore } from "../stores/gameStore"
-import { setGameState } from "../utils/firebase"
 import { useI18n } from "../i18n"
 import SelectorButton from "../components/SelectorButton.vue"
 import BaseButton from "../components/BaseButton.vue"
@@ -351,9 +350,7 @@ const handleStartGame = () => {
     if (multiplayerRole.value === "join") {
       setTimeout(() => {
         const store = useGameStore()
-        const state = JSON.parse(JSON.stringify(store.gameState))
-        state.players[1].name = player2Name.value.trim() || t("player2")
-        setGameState(multiplayerCode.value, state)
+        store.updateJoiningPlayerName(player2Name.value.trim() || t("player2"))
       }, 300)
     }
     localStorage.setItem("multiplayerRole", multiplayerRole.value)

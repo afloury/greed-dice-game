@@ -1,5 +1,10 @@
 import { initializeApp } from "firebase/app"
-import { getDatabase, ref, set, remove } from "firebase/database"
+import { getDatabase, ref, set, remove, update } from "firebase/database"
+
+// Add new function
+export function updateGameState(code: string, updates: any) {
+  return update(getGameStateRef(code), updates)
+}
 import { useDatabaseObject } from "vuefire"
 
 export const firebaseApp = initializeApp({

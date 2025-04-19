@@ -2,7 +2,7 @@ import { defineStore } from "pinia"
 import { ref, computed, watch } from "vue"
 import type { GameState } from "../types/game"
 import { useI18n } from "../i18n"
-import { useGameState, setGameState } from "../utils/firebase"
+import { useGameState, setGameState, updateGameState } from "../utils/firebase"
 
 // Constants moved outside the store
 const MIN_QUALIFYING_SCORE_OPTIONS = [500, 750, 1000]
@@ -250,6 +250,27 @@ export const useGameStore = defineStore("game", () => {
       }))
 
     // Force reactivity
+  }
+
+  // Add new function
+  function canModifyGameState() {
+    if (!multiplayer.value) return true
+
+    if (multiplayer.value.role === "host") {
+      return gameState.value.currentPlayer === 0
+    } else {
+      return gameState.value.currentPlayer === 1
+    }
+  }
+
+  // Add new function
+  function updateJoiningPlayerName(name: string) {
+    if (!multiplayer.value || multiplayer.value.role !== "join") return
+
+    const code = multiplayer.value.code
+    updateGameState(code, {
+      "players/1/name": name,
+    })
   }
 
   // Roll callback function for animations
@@ -1360,17 +1381,19 @@ export const useGameStore = defineStore("game", () => {
     if (multiplayer.value && multiplayer.value.unbind)
       multiplayer.value.unbind()
     multiplayer.value = { code, role: "host" }
-    // Save game state to Firebase whenever it changes
+
+    setGameState(code, gameState.value)
+
     const stop = watch(
       gameState,
       (val) => {
-        setGameState(code, val)
+        if (canModifyGameState() || showMenu.value) {
+          setGameState(code, val)
+        }
       },
       { deep: true }
     )
     multiplayer.value.unbind = stop
-    // Initial push
-    setGameState(code, gameState.value)
   }
 
   function joinMultiplayerGame(code: string) {
@@ -1457,5 +1480,7 @@ export const useGameStore = defineStore("game", () => {
     joinMultiplayerGame,
     leaveMultiplayerGame,
     multiplayer,
+    updateJoiningPlayerName,
+    canModifyGameState,
   }
 })
