@@ -2,6 +2,7 @@ import { defineStore } from "pinia"
 import { ref, computed, watch } from "vue"
 import type { GameState } from "../types/game"
 import { useI18n } from "../i18n"
+import { useGameState, setGameState, deleteGameState } from "../utils/firebase"
 
 // Constants moved outside the store
 const MIN_QUALIFYING_SCORE_OPTIONS = [500, 750, 1000]
@@ -9,6 +10,13 @@ const WINNING_SCORE = 10000
 const DEFAULT_QUALIFICATION_SCORE = 1000
 
 export const useGameStore = defineStore("game", () => {
+  // Multiplayer state
+  const multiplayer = ref<{
+    code: string
+    role: "host" | "join"
+    unbind?: () => void
+  } | null>(null)
+
   // Initialize i18n
   const { isEnglish, toggleLanguage, t } = useI18n()
 
@@ -1300,16 +1308,6 @@ export const useGameStore = defineStore("game", () => {
     showMenu.value = true
   }
 
-  // Function to handle starting a game with custom player names
-  const startGame = (
-    players: Array<{ id: number; name: string; isComputer: boolean }>
-  ) => {
-    console.log("App.vue: Starting game with players:", players)
-    setPlayers(players)
-    // Hide the menu
-    showMenu.value = false
-  }
-
   const updatePlayerScore = (playerIndex: number, score: number) => {
     if (score >= 0 && score <= 10000) {
       const player = { ...gameState.value.players[playerIndex] }
@@ -1345,6 +1343,75 @@ export const useGameStore = defineStore("game", () => {
 
       // Update potential score
       calculatePotentialScore()
+    }
+  }
+
+  // --- Multiplayer helpers ---
+  function isGameState(val: any): val is GameState {
+    return (
+      val &&
+      typeof val === "object" &&
+      Array.isArray(val.players) &&
+      Array.isArray(val.dice)
+    )
+  }
+
+  function hostMultiplayerGame(code: string) {
+    if (multiplayer.value && multiplayer.value.unbind)
+      multiplayer.value.unbind()
+    multiplayer.value = { code, role: "host" }
+    // Save game state to Firebase whenever it changes
+    const stop = watch(
+      gameState,
+      (val) => {
+        setGameState(code, val)
+      },
+      { deep: true }
+    )
+    multiplayer.value.unbind = stop
+    // Initial push
+    setGameState(code, gameState.value)
+  }
+
+  function joinMultiplayerGame(code: string) {
+    if (multiplayer.value && multiplayer.value.unbind)
+      multiplayer.value.unbind()
+    multiplayer.value = { code, role: "join" }
+    // Bind to Firebase game state reactively
+    const { data: remoteState, stop: stopBinding } = useGameState(code)
+    const stop = watch(
+      remoteState,
+      (val) => {
+        if (isGameState(val)) {
+          gameState.value = val
+        }
+      },
+      { deep: true }
+    )
+    multiplayer.value.unbind = () => {
+      stop()
+      stopBinding()
+    }
+  }
+
+  function leaveMultiplayerGame() {
+    if (multiplayer.value && multiplayer.value.unbind)
+      multiplayer.value.unbind()
+    multiplayer.value = null
+  }
+
+  // Patch startGame to accept multiplayer
+  function startGame(
+    players: Array<{ id: number; name: string; isComputer: boolean }>,
+    options?: { mode?: string; code?: string; role?: "host" | "join" }
+  ) {
+    setPlayers(players)
+    showMenu.value = false
+    if (options?.mode === "multiplayer" && options.code && options.role) {
+      if (options.role === "host") hostMultiplayerGame(options.code)
+      else joinMultiplayerGame(options.code)
+    } else {
+      leaveMultiplayerGame()
     }
   }
 
@@ -1386,5 +1453,9 @@ export const useGameStore = defineStore("game", () => {
     setGameOver,
     updateDieValue,
     startGame,
+    hostMultiplayerGame,
+    joinMultiplayerGame,
+    leaveMultiplayerGame,
+    multiplayer,
   }
 })

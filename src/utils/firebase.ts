@@ -1,7 +1,6 @@
 import { initializeApp } from "firebase/app"
 import { getDatabase, ref, set, remove } from "firebase/database"
 import { useDatabaseObject } from "vuefire"
-// ... other firebase imports
 
 export const firebaseApp = initializeApp({
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -16,12 +15,22 @@ export const firebaseApp = initializeApp({
 // used for the firestore refs
 export const db = getDatabase(firebaseApp)
 
-export const myObject = useDatabaseObject(ref(db, "ant/test"))
-
-export const updateObject = (data: any) => {
-  set(ref(db, "ant/test"), data)
+// Helper to get a reference to a game state by code
+export function getGameStateRef(code: string) {
+  return ref(db, `/gamestate/${code}`)
 }
 
-export const deleteObject = () => {
-  remove(ref(db, "ant/test"))
+// VueFire composable for a game state (reactive binding)
+export function useGameState(code: string) {
+  return useDatabaseObject(getGameStateRef(code))
+}
+
+// Set (overwrite) game state
+export function setGameState(code: string, data: any) {
+  return set(getGameStateRef(code), data)
+}
+
+// Remove game state
+export function deleteGameState(code: string) {
+  return remove(getGameStateRef(code))
 }

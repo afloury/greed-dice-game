@@ -14,17 +14,63 @@
         <SelectorButton
           :items="[
             { value: 'vs-computer', text: t('vsComputer') },
-            { value: 'vs-friend', text: t('vsFriend') },
+            {
+              value: 'multiplayer',
+              text: t('multiplayerOnline'),
+              disabled: !isDev,
+            },
           ]"
           :selected-value="gameMode"
           @update:selected="gameMode = $event"
         />
+        <div v-if="!isDev" class="text-xs text-red-500 mt-2">
+          {{ "Multiplayer is not ready yet." }}
+        </div>
       </div>
 
+      <!-- Multiplayer options -->
+      <div v-if="gameMode === 'multiplayer'" class="mb-8">
+        <h2 class="text-xl font-bold mb-4">
+          {{ t("multiplayerOptions") || "Multiplayer Options" }}
+        </h2>
+        <SelectorButton
+          :items="[
+            { value: 'host', text: t('hostGame') },
+            { value: 'join', text: t('joinGame') },
+          ]"
+          :selected-value="multiplayerRole"
+          @update:selected="multiplayerRole = $event"
+        />
+        <div v-if="multiplayerRole === 'host'" class="mt-4">
+          <label class="block mb-2">{{ t("gameCode") || "Game Code" }}</label>
+          <input
+            v-model="multiplayerCode"
+            type="text"
+            class="flex-1 p-2 rounded border input-field"
+          />
+          <button
+            @click="multiplayerCode = generateRandomCode()"
+            class="p-2 rounded-lg game-button-secondary ml-2"
+            title="Generate random code"
+          >
+            🎲
+          </button>
+        </div>
+        <div v-else class="mt-4">
+          <label class="block mb-2">{{
+            t("enterGameCode") || "Enter Game Code"
+          }}</label>
+          <input
+            v-model="multiplayerCode"
+            type="text"
+            class="flex-1 p-2 rounded border input-field"
+          />
+        </div>
+      </div>
       <!-- Qualification Score Selection -->
       <div class="mb-8">
         <h2 class="text-xl font-bold mb-4">
-          {{ t("qualificationScore") || "Qualification Score" }}
+          {{ t("qualificationScore") }}
         </h2>
         <SelectorButton
           :items="
@@ -43,7 +89,13 @@
         <h2 class="text-xl font-bold mb-4">
           {{ t("playerNames") }}
         </h2>
-        <div class="mb-4">
+        <div
+          class="mb-4"
+          v-if="
+            gameMode === 'vs-computer' ||
+            (gameMode === 'multiplayer' && multiplayerRole === 'host')
+          "
+        >
           <label class="block mb-2">
             {{ gameMode === "vs-computer" ? t("player") : t("player1") }}
           </label>
@@ -63,7 +115,10 @@
             </button>
           </div>
         </div>
-        <div v-if="gameMode === 'vs-friend'" class="mb-4">
+        <div
+          v-if="gameMode === 'multiplayer' && multiplayerRole === 'join'"
+          class="mb-4"
+        >
           <label class="block mb-2">
             {{ t("player2") }}
           </label>
@@ -133,16 +188,23 @@
         size="lg"
         variant="primary"
       >
-        {{ t("newGame") }}
+        {{
+          gameMode === "vs-computer"
+            ? t("newGame")
+            : multiplayerRole === "host"
+            ? t("createGame")
+            : t("joinGame")
+        }}
       </BaseButton>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue"
+import { ref, watch } from "vue"
 import { useRouter } from "vue-router"
 import { useGameStore } from "../stores/gameStore"
+import { setGameState } from "../utils/firebase"
 import { useI18n } from "../i18n"
 import SelectorButton from "../components/SelectorButton.vue"
 import BaseButton from "../components/BaseButton.vue"
@@ -153,10 +215,13 @@ const { MIN_QUALIFYING_SCORE_OPTIONS, setQualificationScore, startGame } =
   useGameStore()
 const { isEnglish, toggleLanguage, t } = useI18n()
 const isDark = useDark()
+const isDev = import.meta.env.DEV
 const toggleDark = useToggle(isDark)
 
 // Game mode (vs friend or vs computer)
-const gameMode = ref<"vs-computer" | "vs-friend">("vs-computer")
+const gameMode = ref<"vs-computer" | "multiplayer">("vs-computer")
+const multiplayerRole = ref<"host" | "join">("host")
+const multiplayerCode = ref(generateRandomCode())
 
 // Qualification score options and selection
 const qualificationScoreOptions = MIN_QUALIFYING_SCORE_OPTIONS
@@ -165,6 +230,21 @@ const selectedQualificationScore = ref(1000)
 // Player names
 const player1Name = ref("")
 const player2Name = ref("")
+
+// Watch for multiplayer mode changes
+watch(gameMode, (newMode: "vs-computer" | "multiplayer") => {
+  if (newMode === "multiplayer") {
+    multiplayerRole.value = "host"
+    multiplayerCode.value = generateRandomCode()
+  }
+})
+watch(multiplayerRole, (newRole: "host" | "join") => {
+  if (newRole === "join") {
+    multiplayerCode.value = ""
+  } else {
+    multiplayerCode.value = generateRandomCode()
+  }
+})
 
 // Random nickname generator
 const nicknames = {
@@ -217,7 +297,11 @@ const generateRandomName = (playerNumber: 1 | 2) => {
   }
 }
 
-// Start the game with current players
+// Multiplayer helpers
+function generateRandomCode() {
+  return Math.random().toString(36).substring(2, 8).toUpperCase()
+}
+
 const router = useRouter()
 
 const handleStartGame = () => {
@@ -257,8 +341,27 @@ const handleStartGame = () => {
       isComputer: gameMode.value === "vs-computer",
     },
   ]
-  startGame(players)
-  router.push("/game")
+  if (gameMode.value === "multiplayer") {
+    startGame(players, {
+      mode: "multiplayer",
+      code: multiplayerCode.value,
+      role: multiplayerRole.value,
+    })
+    // If joining, update player 2 name in Firebase
+    if (multiplayerRole.value === "join") {
+      setTimeout(() => {
+        const store = useGameStore()
+        const state = JSON.parse(JSON.stringify(store.gameState))
+        state.players[1].name = player2Name.value.trim() || t("player2")
+        setGameState(multiplayerCode.value, state)
+      }, 300)
+    }
+    localStorage.setItem("multiplayerRole", multiplayerRole.value)
+    router.push(`/game/${multiplayerCode.value}`)
+  } else {
+    startGame(players, { mode: "vs-computer" })
+    router.push("/game")
+  }
 }
 </script>
 

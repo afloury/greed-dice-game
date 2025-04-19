@@ -7,7 +7,7 @@
       :label="item.text"
       :variant="selectedValue === item.value ? 'primary' : 'secondary'"
       :size="direction === 'col' ? 'lg' : 'sm'"
-      :disabled="disabled"
+      :disabled="disabled || item.disabled"
       :selected="selectedValue === item.value"
     />
   </div>
@@ -20,6 +20,7 @@ import BaseButton from "./BaseButton.vue"
 interface SelectorItem {
   value: any
   text: string
+  disabled?: boolean
 }
 
 const props = defineProps<{

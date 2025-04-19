@@ -14,6 +14,7 @@ export default {
 
   // UI Controls
   newGame: "Nouvelle Partie",
+  createGame: "Créer la partie",
   settings: "Paramètres",
   close: "Fermer",
   playAgain: "Jouer à Nouveau",
@@ -69,7 +70,8 @@ export default {
   locked: "Verrouillé (points en banque)",
   notScorable: "Non comptabilisable",
   dieIsLocked: "Ce dé est verrouillé (points déjà en banque)",
-  dieIsSelected: "Ce dé est sélectionné (cliquez à nouveau pour désélectionner)",
+  dieIsSelected:
+    "Ce dé est sélectionné (cliquez à nouveau pour désélectionner)",
   clickToSelect: "Cliquez pour sélectionner ce dé",
 
   // Game rules
@@ -102,6 +104,12 @@ export default {
   // Menu
   gameModes: "Mode de Jeu",
   vsComputer: "vs Ordinateur",
+  multiplayerOnline: "Multijoueur",
+  multiplayerOptions: "Options Multijoueur",
+  hostGame: "Héberger la partie",
+  joinGame: "Rejoindre la partie",
+  gameCode: "Code de la partie",
+  enterGameCode: "Entrer le code de la partie",
   vsFriend: "vs Ami",
   playerNames: "Noms des Joueurs",
   enterName: "Entrez un nom",

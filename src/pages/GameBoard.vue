@@ -258,10 +258,26 @@ import DiceControls from "../components/DiceControls.vue"
 import DevPanel from "../components/DevPanel.vue"
 import { computed, onMounted, ref, watch } from "vue"
 import BaseButton from "../components/BaseButton.vue"
-import { useRouter } from "vue-router"
+import { useRouter, useRoute } from "vue-router"
 
 // Use the store directly to maintain reactivity
 const store = useGameStore()
+const route = useRoute()
+
+onMounted(() => {
+  // If /game/:code is present, auto-connect to multiplayer
+  const code = route.params.code as string | undefined
+  if (code) {
+    // Determine role: if joining from menu, should be join; if host, should be host
+    // You can store the role in localStorage or as a query param when navigating
+    const role = localStorage.getItem("multiplayerRole") || "join"
+    if (role === "host") {
+      store.hostMultiplayerGame(code)
+    } else {
+      store.joinMultiplayerGame(code)
+    }
+  }
+})
 const isDev = import.meta.env.DEV
 
 // Initialize i18n

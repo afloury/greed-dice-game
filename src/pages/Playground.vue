@@ -1,14 +1,14 @@
 <template>
   <div>Playground</div>
-  <pre>{{ myObject }}</pre>
+  <!-- <pre>{{ myObject }}</pre>
   <BaseButton variant="secondary" @click="updateObject({ test: 'test' })">
     Update Object
-  </BaseButton>
+  </BaseButton> -->
 </template>
 
 <script setup lang="ts">
 import BaseButton from "../components/BaseButton.vue"
-import { myObject, updateObject } from "../utils/firebase"
+// import { myObject, updateObject } from "../utils/firebase"
 </script>
 
 <style scoped></style>

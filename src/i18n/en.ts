@@ -14,6 +14,7 @@ export default {
 
   // UI Controls
   newGame: "New Game",
+  createGame: "Create Game",
   settings: "Settings",
   close: "Close",
   playAgain: "Play Again",
@@ -101,6 +102,12 @@ export default {
   // Menu
   gameModes: "Game Mode",
   vsComputer: "vs Computer",
+  multiplayerOnline: "Multiplayer",
+  multiplayerOptions: "Multiplayer Options",
+  hostGame: "Host Game",
+  joinGame: "Join Game",
+  gameCode: "Game Code",
+  enterGameCode: "Enter Game Code",
   vsFriend: "vs Friend",
   playerNames: "Player Names",
   enterName: "Enter name",
