@@ -2,7 +2,7 @@ import { defineStore } from "pinia"
 import { ref, computed, watch } from "vue"
 import type { GameState } from "../types/game"
 import { useI18n } from "../i18n"
-import { useGameState, setGameState, deleteGameState } from "../utils/firebase"
+import { useGameState, setGameState } from "../utils/firebase"
 
 // Constants moved outside the store
 const MIN_QUALIFYING_SCORE_OPTIONS = [500, 750, 1000]
