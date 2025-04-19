@@ -729,17 +729,16 @@ export const useGameStore = defineStore("game", () => {
       `Turn changed from ${gameState.value.players[oldPlayerIndex].name} to ${currentPlayer.value.name}`
     )
 
+    // Set diceHidden to true after a turn ends
+    gameState.value.diceHidden = true
+    gameState.value.currentPlayer =
+      (gameState.value.currentPlayer + 1) % gameState.value.players.length
     // Only start computer turn if the current player is a computer
     // (This allows vs Friend mode to work correctly)
     if (currentPlayer.value.isComputer && !gameState.value.isGameOver) {
       console.log("Computer's turn is starting automatically from the store")
       setTimeout(playComputerTurn, 2000)
     }
-
-    // Set diceHidden to true after a turn ends
-    gameState.value.diceHidden = true
-    gameState.value.currentPlayer =
-      (gameState.value.currentPlayer + 1) % gameState.value.players.length
     if (multiplayer.value) setGameState(multiplayer.value.code, gameState.value)
   }
 
