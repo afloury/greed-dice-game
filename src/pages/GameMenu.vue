@@ -23,9 +23,9 @@
           :selected-value="gameMode"
           @update:selected="gameMode = $event"
         />
-        <div v-if="!isDev" class="text-xs text-red-500 mt-2">
+        <!-- <div v-if="!isDev" class="text-xs text-red-500 mt-2">
           {{ "Multiplayer is not ready yet." }}
-        </div>
+        </div> -->
       </div>
 
       <!-- Multiplayer options -->
