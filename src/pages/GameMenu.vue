@@ -201,7 +201,7 @@ import { useDark, useToggle } from "@vueuse/core"
 const { MIN_QUALIFYING_SCORE_OPTIONS, startGame } = useGameStore()
 const { isEnglish, toggleLanguage, t } = useI18n()
 const isDark = useDark()
-const isDev = import.meta.env.DEV
+// const isDev = import.meta.env.DEV
 const toggleDark = useToggle(isDark)
 
 // Game mode (vs friend or vs computer)
