@@ -17,15 +17,15 @@
             {
               value: 'multiplayer',
               text: t('multiplayerOnline'),
-              // disabled: !isDev,
+              disabled: !isDev,
             },
           ]"
           :selected-value="gameMode"
           @update:selected="gameMode = $event"
         />
-        <!-- <div v-if="!isDev" class="text-xs text-red-500 mt-2">
+        <div v-if="!isDev" class="text-xs text-red-500 mt-2">
           {{ "Multiplayer is not ready yet." }}
-        </div> -->
+        </div>
       </div>
 
       <!-- Multiplayer options -->
@@ -201,7 +201,7 @@ import { useDark, useToggle } from "@vueuse/core"
 const { MIN_QUALIFYING_SCORE_OPTIONS, startGame } = useGameStore()
 const { isEnglish, toggleLanguage, t } = useI18n()
 const isDark = useDark()
-// const isDev = import.meta.env.DEV
+const isDev = import.meta.env.DEV
 const toggleDark = useToggle(isDark)
 
 // Game mode (vs friend or vs computer)

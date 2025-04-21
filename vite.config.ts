@@ -5,6 +5,9 @@ import tailwindcss from "@tailwindcss/vite"
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [vue(), tailwindcss()],
+  build: {
+    sourcemap: true, // Ensures source maps are generated for better stack traces
+  },
   define: {
     // This ensures import.meta.env.DEV is properly defined at build time
     // Will be true during development and false in production build

@@ -1432,13 +1432,17 @@ export const useGameStore = defineStore("game", () => {
     const stopRemote = watch(
       remoteState,
       (val) => {
-        if (
-          isGameState(val) &&
-          JSON.stringify(val) !== JSON.stringify(gameState.value)
-        ) {
-          updatingFromRemote = true
-          gameState.value = val
-          updatingFromRemote = false
+        if (isGameState(val)) {
+          // Only update if the game state (excluding updatedAt) actually changed
+          const cleanVal = JSON.parse(JSON.stringify(val))
+          const cleanLocal = JSON.parse(JSON.stringify(gameState.value))
+          if (cleanVal.updatedAt) delete cleanVal.updatedAt
+          if (cleanLocal.updatedAt) delete cleanLocal.updatedAt
+          if (JSON.stringify(cleanVal) !== JSON.stringify(cleanLocal)) {
+            updatingFromRemote = true
+            Object.assign(gameState.value, val)
+            updatingFromRemote = false
+          }
         }
       },
       { deep: true }
