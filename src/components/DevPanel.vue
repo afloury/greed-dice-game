@@ -118,7 +118,7 @@ import { useGameStore } from "../stores/gameStore"
 const store = useGameStore()
 
 // Local state
-const collapsed = ref(false)
+const collapsed = ref(true)
 const isPaused = ref(false)
 const logEnabled = ref(true)
 const devPanelRef = ref<HTMLElement | null>(null)

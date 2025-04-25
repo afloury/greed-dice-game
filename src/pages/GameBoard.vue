@@ -296,6 +296,8 @@ import { useGameState } from "../utils/firebase"
 // Use the store directly to maintain reactivity
 const store = useGameStore()
 const route = useRoute()
+// If game state is missing or has no players, consider it not found
+const { data: remoteState } = useGameState(route.params.code as string)
 
 onMounted(() => {
   // If /game/:code is present, auto-connect to multiplayer
@@ -319,8 +321,6 @@ const gameNotFound = computed(() => {
   if (!code) return false
   // If the multiplayer code does not match or game state is missing/empty
   if (!store.multiplayer || store.multiplayer.code !== code) return false
-  // If game state is missing or has no players, consider it not found
-  const { data: remoteState } = useGameState(code)
   return !remoteState.value
 })
 
