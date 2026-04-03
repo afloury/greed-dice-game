@@ -36,7 +36,7 @@
         v-model:sound-volume="soundVolume"
         @update:show-settings="showSettings = $event"
         @toggle-language="toggleLanguage"
-        @test-sound="testSound"
+        @test-sound="playDiceSound"
       />
 
       <!-- Player Scores -->
@@ -227,271 +227,92 @@
 <script setup lang="ts">
 import { useGameStore } from "../stores/gameStore"
 import { useI18n } from "../i18n"
+import { useGameSound } from "../composables/useGameSound"
 import ComputerAI from "../components/ComputerAI.vue"
 import GameSettings from "../components/GameSettings.vue"
 import GameScoring from "../components/GameScoring.vue"
 import DiceDisplay from "../components/DiceDisplay.vue"
 import DiceControls from "../components/DiceControls.vue"
 import DevPanel from "../components/DevPanel.vue"
-import { computed, onMounted, ref, watch } from "vue"
 import BaseButton from "../components/BaseButton.vue"
+import { computed, onMounted, ref } from "vue"
 import { useRouter } from "vue-router"
 
-// Use the store directly to maintain reactivity
 const store = useGameStore()
-
+const router = useRouter()
 const isDev = import.meta.env.DEV
-
-// Initialize i18n
 const { t, isEnglish, toggleLanguage } = useI18n()
+const { soundVolume, spinningDice, playDiceSound, startSpinAnimation, onDiceRolled } = useGameSound()
 
-// Define the interface for the exposed methods from ComputerAI
-interface ComputerAIExpose {
-  computerActions: {
-    makeDecision: () => void
-  }
-}
-
-const computerAIRef = ref<ComputerAIExpose | null>(null)
-
-// Track which dice are currently spinning
-const spinningDice = ref<boolean[]>([false, false, false, false, false])
-
-// Audio for dice rolling
-let diceSound: HTMLAudioElement | null = null
-
-// Sound settings
-const soundVolume = ref(50) // Default volume 50%
 const showSettings = ref(false)
 
-// Toggle and close settings modal
 const toggleSettings = () => {
   showSettings.value = !showSettings.value
-  // If opening the modal, add a class to the body to prevent scrolling
-  if (showSettings.value) {
-    document.body.classList.add("modal-open")
-  } else {
-    document.body.classList.remove("modal-open")
-  }
+  document.body.classList.toggle("modal-open", showSettings.value)
 }
 
-// Watch for sound volume changes
-watch(
-  () => soundVolume.value,
-  (newVolume) => {
-    // Update volume on the sound object if it exists
-    if (diceSound) {
-      diceSound.volume = newVolume / 100
-    }
-  }
-)
+onMounted(() => {
+  store.setRollCallback(onDiceRolled)
+})
 
-// Function to play dice sound
-const playDiceSound = () => {
-  try {
-    if (!diceSound) {
-      // Try multiple possible locations for the sound file
-      diceSound = new Audio("/dice-roll.mp3")
-
-      // Fallback to not playing sound if there's an issue
-      diceSound.addEventListener("error", () => {
-        console.log("Dice sound file not found or not supported")
-        diceSound = null
-      })
-    }
-
-    if (diceSound) {
-      diceSound.volume = soundVolume.value / 100
-      diceSound.currentTime = 0
-      diceSound.play().catch((err) => console.log("Audio play error:", err))
-    }
-  } catch (error) {
-    console.log("Error playing dice sound:", error)
-  }
-}
-
-// Function to animate dice rolling
-const animateDice = () => {
-  // After a delay, stop the spinning animation
-  setTimeout(() => {
-    spinningDice.value = Array(5).fill(false)
-  }, 1000)
-}
-
-// Computed property to determine if qualification warning should be shown
+// --- Computed ---
 const showQualificationWarning = computed(() => {
-  // Only show the warning if it's the player's turn and they're not qualified
   if (!store.isPlayerTurn || store.gameState.isBust) return false
-
-  // Check if the current player is qualified
   if (store.currentPlayer.isQualified) return false
-
-  // Check if the player has enough points to qualify
   return (
     store.gameState.gamePhase === "QUALIFICATION" &&
     store.gameState.potentialScore < store.MIN_QUALIFYING_SCORE &&
-    store.currentPlayer.totalScore + store.gameState.potentialScore <
-      store.MIN_QUALIFYING_SCORE
+    store.currentPlayer.totalScore + store.gameState.potentialScore < store.MIN_QUALIFYING_SCORE
   )
 })
 
-// Tooltip for the Keep Score button
 const keepScoreButtonTooltip = computed(() => {
-  const turnTotal =
-    store.gameState.currentTurnScore + store.gameState.potentialScore
-
-  if (
-    !store.currentPlayer.isQualified &&
-    turnTotal < store.MIN_QUALIFYING_SCORE
-  ) {
+  const turnTotal = store.gameState.currentTurnScore + store.gameState.potentialScore
+  if (!store.currentPlayer.isQualified && turnTotal < store.MIN_QUALIFYING_SCORE) {
     return t("qualificationNeeded", [store.MIN_QUALIFYING_SCORE, turnTotal])
   }
-
-  if (!store.canKeepScore) {
-    return t("noPointsToKeep")
-  }
-
-  if (!store.isPlayerTurn) {
-    return t("notYourTurnKeep")
-  }
-
+  if (!store.canKeepScore) return t("noPointsToKeep")
+  if (!store.isPlayerTurn) return t("notYourTurnKeep")
   return t("bankPoints")
 })
 
-// Tooltip for the Roll Dice button
 const rollDiceButtonTooltip = computed(() => {
-  if (!store.isPlayerTurn) {
-    return t("notYourTurn")
-  }
-
-  // We should use our own detailed tooltips instead of the ones from the store
-  // since we have proper translations
-  if (store.gameState.isBust) {
-    return t("cantRollBust")
-  }
-
-  if (!store.gameState.dice.some((die: any) => !die.isLocked)) {
-    return t("allDiceLocked")
-  }
-
-  if (
-    !store.gameState.isFirstRoll &&
-    !store.gameState.dice.some((die: any) => die.isSelected)
-  ) {
+  if (!store.isPlayerTurn) return t("notYourTurn")
+  if (store.gameState.isBust) return t("cantRollBust")
+  if (!store.gameState.dice.some((die: any) => !die.isLocked)) return t("allDiceLocked")
+  if (!store.gameState.isFirstRoll && !store.gameState.dice.some((die: any) => die.isSelected)) {
     return t("mustSelectDie")
   }
-
-  if (store.gameState.isFirstRoll) {
-    return t("rollToStartTurn")
-  }
-
+  if (store.gameState.isFirstRoll) return t("rollToStartTurn")
   return t("rollDiceTooltip")
 })
 
-// Set up the roll animation callback
-onMounted(() => {
-  console.log(
-    "GameBoard received store with players:",
-    store.gameState.players.map((p: any) => p.name)
-  )
-
-  store.setRollCallback((rollingDiceIndices: number[]) => {
-    // Reset spinning state
-    spinningDice.value = Array(5).fill(false)
-
-    // Mark dice that are rolling as spinning
-    rollingDiceIndices.forEach((index) => {
-      spinningDice.value[index] = true
-    })
-
-    // Play dice sound
-    playDiceSound()
-
-    // After a delay, stop the spinning animation
-    setTimeout(() => {
-      spinningDice.value = Array(5).fill(false)
-    }, 1000)
-  })
-})
-
-// Watch for end turn transitions to make sure computer's turn is triggered
-watch(
-  () => store.gameState.currentPlayer,
-  (newPlayerIndex) => {
-    // The endTurn function in the store now handles starting the computer's turn automatically
-    // This watcher is just for logging purposes now
-    const player = store.gameState.players[newPlayerIndex]
-    console.log(`GameBoard detected player change to: ${player.name}`, {
-      currentPlayerIdx: newPlayerIndex,
-      isComputer: player.isComputer,
-      isGameOver: store.gameState.isGameOver,
-    })
-  }
-)
-
-// Also ensure computer plays after a game reset
-const router = useRouter()
-
+// --- Actions ---
 function handleResetGame() {
-  console.log(
-    "Resetting game with player names:",
-    store.gameState.players.map((p: any) => p.name)
-  )
   store.resetGame()
-  console.log(
-    "Game reset, player names are now:",
-    store.gameState.players.map((p: any) => p.name)
-  )
-  // The menu will be shown automatically because we set showMenu to true in resetGame
   router.push("/")
 }
 
-// Function to test sound
-const testSound = () => {
-  playDiceSound()
+function handleKeepScore() {
+  if (store.canKeepScore && store.isPlayerTurn) store.keepScore()
 }
 
-// Function to get the winner's name
+function handleRollDice() {
+  if (!store.canRoll || !store.isPlayerTurn) return
+  playDiceSound()
+  store.rollDice()
+  spinningDice.value = store.gameState.dice.map(() => true)
+  startSpinAnimation()
+}
+
 const getWinnerName = () => {
-  const winner = store.gameState.players.find(
-    (player: { totalScore: number }) => player.totalScore === 10000
-  )
+  const winner = store.gameState.players.find((p) => p.totalScore === 10000)
   return winner ? winner.name : ""
 }
 
-// Function to get the winner's score
 const getWinnerScore = () => {
-  const winner = store.gameState.players.find(
-    (player: { totalScore: number }) => player.totalScore === 10000
-  )
+  const winner = store.gameState.players.find((p) => p.totalScore === 10000)
   return winner ? winner.totalScore : 0
-}
-
-// Function to keep score
-const handleKeepScore = () => {
-  // Can only keep score if it's allowed
-  if (!store.canKeepScore || !store.isPlayerTurn) return
-
-  // Keep score
-  store.keepScore()
-}
-
-// Function to handle roll button click
-const handleRollDice = () => {
-  // Can only roll if it's allowed
-  if (!store.canRoll || !store.isPlayerTurn) return
-
-  // Play sound
-  playDiceSound()
-
-  // Roll the dice
-  store.rollDice()
-
-  // Reset the spinning dice
-  spinningDice.value = store.gameState.dice.map(() => true)
-
-  // Start the animation
-  animateDice()
 }
 </script>
 

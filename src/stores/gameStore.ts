@@ -10,6 +10,23 @@ const MIN_QUALIFYING_SCORE_OPTIONS = [500, 750, 1000]
 const WINNING_SCORE = 10000
 const DEFAULT_QUALIFICATION_SCORE = 1000
 
+const DEFAULT_NAMES_BY_LANG = {
+  player: ["Player", "Joueur"],
+  player1: ["Player 1", "Joueur 1"],
+  player2: ["Player 2", "Joueur 2"],
+  computer: ["Computer", "Ordinateur"],
+}
+
+function isDefaultName(name: string): boolean {
+  return Object.values(DEFAULT_NAMES_BY_LANG).some((names) => names.includes(name))
+}
+
+function freshDice() {
+  return Array(5).fill(null).map(() => ({
+    value: 1, isSelected: false, isLocked: false, isValidSelection: false,
+  }))
+}
+
 export const useGameStore = defineStore("game", () => {
   const { isEnglish, toggleLanguage, t } = useI18n()
 
@@ -23,9 +40,7 @@ export const useGameStore = defineStore("game", () => {
     ],
     currentPlayer: 0,
     currentTurnScore: 0,
-    dice: Array(5).fill(null).map(() => ({
-      value: 1, isSelected: false, isLocked: false, isValidSelection: false,
-    })),
+    dice: freshDice(),
     gamePhase: "QUALIFICATION",
     isGameOver: false,
     lastRollScore: 0,
@@ -63,53 +78,30 @@ export const useGameStore = defineStore("game", () => {
     return totalTurnPoints >= MIN_QUALIFYING_SCORE.value
   })
 
-  const rollButtonTooltip = computed(() => {
-    if (gameState.value.isGameOver) return t("gameOver")
-    if (gameState.value.isBust) return t("cantRollBust")
-    if (!isPlayerTurn.value) return t("notYourTurn")
-    if (!gameState.value.dice.some((die) => !die.isLocked)) return t("allDiceLocked")
-    if (!gameState.value.isFirstRoll && !gameState.value.dice.some((die) => die.isSelected)) {
-      return t("mustSelectDie")
-    }
-    if (gameState.value.isFirstRoll) return t("rollToStartTurn")
-    return t("rollDiceTooltip")
-  })
+  /** Resolve a player name: keep custom names, translate default ones */
+  function resolvePlayerName(name: string, isComputer: boolean, isVsComputer: boolean): string {
+    if (!isDefaultName(name)) return name
+    if (isComputer) return isVsComputer ? t("computer") : t("player2")
+    return isVsComputer ? t("player") : t("player1")
+  }
 
   // --- Language change watcher ---
   watch(isEnglish, () => {
-    const isVsComputerMode = gameState.value.players.length > 1
+    const isVsComputer = gameState.value.players.length > 1
       ? gameState.value.players[1].isComputer
       : true
 
-    const player1Name = gameState.value.players[0].name
-    const player2Name = gameState.value.players[1].name
-
-    const defaultPlayerNames = ["Player", "Joueur"]
-    const defaultPlayer1Names = ["Player 1", "Joueur 1"]
-    const defaultPlayer2Names = ["Player 2", "Joueur 2"]
-    const defaultComputerNames = ["Computer", "Ordinateur"]
-
-    const isPlayer1Default =
-      defaultPlayerNames.includes(player1Name) || defaultPlayer1Names.includes(player1Name)
-    const isPlayer2Default =
-      defaultComputerNames.includes(player2Name) || defaultPlayer2Names.includes(player2Name)
-
-    if (isPlayer1Default) {
-      gameState.value.players[0].name = isVsComputerMode ? t("player") : t("player1")
-    }
-    if (isPlayer2Default) {
-      gameState.value.players[1].name = isVsComputerMode ? t("computer") : t("player2")
-    }
+    gameState.value.players.forEach((player) => {
+      player.name = resolvePlayerName(player.name, player.isComputer, isVsComputer)
+    })
 
     if (gameState.value.bustMessage) {
-      if (gameState.value.currentTurnScore > 0) {
-        gameState.value.bustMessage = t("bustLostPoints", [
-          gameState.value.players[gameState.value.currentPlayer].name,
-          gameState.value.currentTurnScore,
-        ])
-      } else {
-        gameState.value.bustMessage = t("bustGeneric")
-      }
+      gameState.value.bustMessage = gameState.value.currentTurnScore > 0
+        ? t("bustLostPoints", [
+            gameState.value.players[gameState.value.currentPlayer].name,
+            gameState.value.currentTurnScore,
+          ])
+        : t("bustGeneric")
     }
   })
 
@@ -312,9 +304,7 @@ export const useGameStore = defineStore("game", () => {
     gameState.value.diceHidden = true
     gameState.value.qualificationScore =
       qualificationScore ?? gameState.value.qualificationScore ?? DEFAULT_QUALIFICATION_SCORE
-    gameState.value.dice = Array(5).fill(null).map(() => ({
-      value: 1, isSelected: false, isLocked: false, isValidSelection: false,
-    }))
+    gameState.value.dice = freshDice()
   }
 
   function setQualificationScore(score: number) {
@@ -324,53 +314,19 @@ export const useGameStore = defineStore("game", () => {
   }
 
   function resetGame(qualificationScore?: number) {
-    const player2IsComputer = gameState.value.players.length > 1
+    const isVsComputer = gameState.value.players.length > 1
       ? gameState.value.players[1].isComputer
       : true
 
-    const player1Name = gameState.value.players[0].name
-    const player2Name = gameState.value.players[1].name
-    const isVsComputerMode = player2IsComputer
-
-    const defaultPlayerNames = ["Player", "Joueur"]
-    const defaultPlayer1Names = ["Player 1", "Joueur 1"]
-    const defaultPlayer2Names = ["Player 2", "Joueur 2"]
-    const defaultComputerNames = ["Computer", "Ordinateur"]
-
-    const isPlayer1Default =
-      defaultPlayerNames.includes(player1Name) || defaultPlayer1Names.includes(player1Name)
-    const isPlayer2Default =
-      defaultComputerNames.includes(player2Name) || defaultPlayer2Names.includes(player2Name)
-
-    const usePlayer1Name = !isPlayer1Default
-      ? player1Name
-      : isVsComputerMode ? t("player") : t("player1")
-    const usePlayer2Name = !isPlayer2Default
-      ? player2Name
-      : isVsComputerMode ? t("computer") : t("player2")
+    const players = gameState.value.players.map((p) => ({
+      id: p.id,
+      name: resolvePlayerName(p.name, p.isComputer, isVsComputer),
+      isComputer: p.isComputer,
+    }))
 
     showMenu.value = true
     setTimeout(() => {
-      gameState.value = {
-        qualificationScore: qualificationScore ?? gameState.value.qualificationScore ?? DEFAULT_QUALIFICATION_SCORE,
-        players: [
-          { id: 0, name: usePlayer1Name, totalScore: 0, isQualified: false, isComputer: false },
-          { id: 1, name: usePlayer2Name, totalScore: 0, isQualified: false, isComputer: player2IsComputer },
-        ],
-        currentPlayer: 0,
-        currentTurnScore: 0,
-        dice: Array(5).fill(null).map(() => ({
-          value: 1, isSelected: false, isLocked: false, isValidSelection: false,
-        })),
-        gamePhase: "QUALIFICATION",
-        isGameOver: false,
-        lastRollScore: 0,
-        potentialScore: 0,
-        isFirstRoll: true,
-        isBust: false,
-        bustMessage: "",
-        diceHidden: true,
-      }
+      setPlayers(players, qualificationScore)
     }, 1000)
   }
 
@@ -383,7 +339,7 @@ export const useGameStore = defineStore("game", () => {
   }
 
   // --- Wire composables ---
-  const { playComputerTurn, selectComputerDice } = useComputerAI({
+  const { playComputerTurn } = useComputerAI({
     gameState,
     currentPlayerIndex: () => gameState.value.currentPlayer,
     rollDice,
@@ -411,20 +367,14 @@ export const useGameStore = defineStore("game", () => {
     isPlayerTurn,
     canRoll,
     canKeepScore,
-    rollButtonTooltip,
-
     setQualificationScore,
-    setPlayers,
     setRollCallback,
     rollDice,
-    calculateRollScore,
-    handleBust,
     calculatePotentialScore,
     toggleDieSelection,
     keepScore,
     endTurn,
     playComputerTurn,
-    selectComputerDice,
     resetGame,
     toggleLanguage,
     updatePlayerScore,
