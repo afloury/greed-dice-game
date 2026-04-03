@@ -9,14 +9,10 @@ export default defineConfig({
     sourcemap: true,
   },
   server: {
-    hmr: {
-      path: "/__vite_hmr",
-    },
     proxy: {
       "/api": {
         target: "http://localhost:8787",
         changeOrigin: true,
-        ws: true,
       },
     },
   },

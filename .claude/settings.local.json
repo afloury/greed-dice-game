@@ -4,8 +4,10 @@
       "Bash(npx vue-tsc:*)",
       "Bash(git -C /Users/antfly/Documents/Dev/Perso/greed-dice-game diff --stat)",
       "Bash(git -C /Users/antfly/Documents/Dev/Perso/greed-dice-game log --oneline -3)",
-      "Bash(git -C /Users/antfly/Documents/Dev/Perso/greed-dice-game add src/pages/GameBoard.vue src/stores/gameStore.ts src/composables/useGameSound.ts)",
-      "Bash(git -C /Users/antfly/Documents/Dev/Perso/greed-dice-game commit -m ':*)"
+      "Bash(git -C /Users/antfly/Documents/Dev/Perso/greed-dice-game add:*)",
+      "Bash(git -C /Users/antfly/Documents/Dev/Perso/greed-dice-game commit -m ':*)",
+      "Bash(pnpm add:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

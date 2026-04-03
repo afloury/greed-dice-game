@@ -1,19 +1,25 @@
 /**
- * Worker entrypoint — routes HTTP requests to Durable Objects.
+ * Worker entrypoint — signaling server for WebRTC peer-to-peer.
  *
- * POST /api/rooms       → Create a new game room, returns { roomCode }
- * GET  /api/ws?room=X&role=host|guest&name=Y → WebSocket upgrade to GameRoom DO
+ * POST /api/rooms              → Create room in KV, returns { roomCode }
+ * GET  /api/signal/:room       → Read signaling data (SDP offer/answer)
+ * POST /api/signal/:room       → Write signaling data (host offer or guest answer)
  */
-import { GameRoom } from "./game-room"
-
-export { GameRoom }
 
 interface Env {
-  GAME_ROOMS: DurableObjectNamespace<GameRoom>
+  SIGNAL_KV: KVNamespace
+}
+
+interface RoomSignal {
+  hostName: string
+  hostOffer: unknown | null
+  guestName: string | null
+  guestAnswer: unknown | null
+  createdAt: number
 }
 
 function generateRoomCode(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789" // no ambiguous chars (0/O, 1/I)
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
   let code = ""
   for (let i = 0; i < 6; i++) {
     code += chars[Math.floor(Math.random() * chars.length)]
@@ -27,44 +33,67 @@ const corsHeaders: HeadersInit = {
   "Access-Control-Allow-Headers": "Content-Type",
 }
 
+function json(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "Content-Type": "application/json", ...corsHeaders },
+  })
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
 
-    // CORS preflight
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders })
     }
 
     // Create a new room
     if (url.pathname === "/api/rooms" && request.method === "POST") {
+      const body = await request.json().catch(() => ({})) as { hostName?: string }
       const roomCode = generateRoomCode()
-      return new Response(
-        JSON.stringify({ roomCode }),
-        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      )
+      const room: RoomSignal = {
+        hostName: body.hostName || "Host",
+        hostOffer: null,
+        guestName: null,
+        guestAnswer: null,
+        createdAt: Date.now(),
+      }
+      await env.SIGNAL_KV.put(`room:${roomCode}`, JSON.stringify(room), { expirationTtl: 300 })
+      return json({ roomCode })
     }
 
-    // WebSocket upgrade to game room
-    if (url.pathname === "/api/ws") {
-      const room = url.searchParams.get("room")
-      const role = url.searchParams.get("role")
-      const name = url.searchParams.get("name")
+    // Signal endpoint
+    const signalMatch = url.pathname.match(/^\/api\/signal\/([A-Z0-9]{4,6})$/i)
+    if (signalMatch) {
+      const roomCode = signalMatch[1].toUpperCase()
+      const key = `room:${roomCode}`
 
-      if (!room || !role || !name) {
-        return new Response("Missing room, role, or name parameter", { status: 400 })
+      if (request.method === "GET") {
+        const data = await env.SIGNAL_KV.get(key)
+        if (!data) return json({ error: "Room not found" }, 404)
+        return json(JSON.parse(data))
       }
 
-      // Route to the Durable Object for this room code
-      const id = env.GAME_ROOMS.idFromName(room.toUpperCase())
-      const stub = env.GAME_ROOMS.get(id)
+      if (request.method === "POST") {
+        const existing = await env.SIGNAL_KV.get(key)
+        if (!existing) return json({ error: "Room not found" }, 404)
 
-      // Forward the request to the DO
-      const doUrl = new URL(request.url)
-      doUrl.pathname = "/ws"
-      doUrl.searchParams.set("room", room.toUpperCase())
+        const room: RoomSignal = JSON.parse(existing)
+        const body = await request.json() as Partial<RoomSignal>
 
-      return stub.fetch(new Request(doUrl.toString(), request))
+        if (body.hostOffer) {
+          room.hostOffer = body.hostOffer
+        }
+
+        if (body.guestAnswer) {
+          room.guestAnswer = body.guestAnswer
+          room.guestName = body.guestName || "Guest"
+        }
+
+        await env.SIGNAL_KV.put(key, JSON.stringify(room), { expirationTtl: 300 })
+        return json({ ok: true })
+      }
     }
 
     return new Response("Not found", { status: 404, headers: corsHeaders })

@@ -2,6 +2,8 @@ import { ref } from "vue"
 import type { GameState } from "../types/game"
 import type { WSMessage, GuestAction, ConnectionState } from "../types/multiplayer"
 
+const log = (...args: unknown[]) => console.log("[multiplayer]", ...args)
+
 // --- Shared singleton state ---
 const connectionState = ref<ConnectionState>("disconnected")
 const roomCode = ref<string | null>(null)
@@ -9,10 +11,25 @@ const role = ref<"host" | "guest" | null>(null)
 const opponentName = ref<string | null>(null)
 const error = ref<string | null>(null)
 
-let ws: WebSocket | null = null
-let heartbeatInterval: ReturnType<typeof setInterval> | null = null
-let reconnectAttempts = 0
-let reconnectParams: { code: string; playerRole: "host" | "guest"; name: string } | null = null
+let pc: RTCPeerConnection | null = null
+let dc: RTCDataChannel | null = null
+let pollInterval: ReturnType<typeof setInterval> | null = null
+
+const RTC_CONFIG: RTCConfiguration = {
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" },
+    {
+      urls: [
+        "turn:openrelay.metered.ca:80",
+        "turn:openrelay.metered.ca:443",
+        "turn:openrelay.metered.ca:443?transport=tcp",
+      ],
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+  ],
+}
 
 // --- Callbacks ---
 type Callback<T> = (data: T) => void
@@ -30,51 +47,7 @@ function onPlayerLeft(cb: Callback<void>) { onPlayerLeftCb = cb }
 function onPlayerReconnected(cb: Callback<void>) { onPlayerReconnectedCb = cb }
 function onRoomJoined(cb: Callback<string>) { onRoomJoinedCb = cb }
 
-// --- WebSocket connection ---
-function connectWebSocket(code: string, playerRole: "host" | "guest", name: string) {
-  reconnectParams = { code, playerRole, name }
-  connectionState.value = reconnectAttempts > 0 ? "reconnecting" : "connecting"
-  error.value = null
-
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:"
-  const host = window.location.host
-  const wsUrl = `${protocol}//${host}/api/ws?room=${code}&role=${playerRole}&name=${encodeURIComponent(name)}`
-
-  ws = new WebSocket(wsUrl)
-
-  ws.onopen = () => {
-    connectionState.value = "connected"
-    reconnectAttempts = 0
-    startHeartbeat()
-  }
-
-  ws.onmessage = (event) => {
-    let msg: WSMessage
-    try {
-      msg = JSON.parse(event.data)
-    } catch {
-      return
-    }
-    handleMessage(msg)
-  }
-
-  ws.onclose = (event) => {
-    stopHeartbeat()
-    if (connectionState.value === "connected") {
-      attemptReconnect()
-    } else {
-      connectionState.value = "disconnected"
-      if (!error.value) {
-        error.value = `WebSocket closed (code ${event.code}). Is the worker running?`
-      }
-    }
-  }
-
-  ws.onerror = () => {
-    error.value = "WebSocket connection failed. Is the worker running on port 8787?"
-  }
-}
-
+// --- Message handling ---
 function handleMessage(msg: WSMessage) {
   switch (msg.type) {
     case "room:created":
@@ -109,54 +82,109 @@ function handleMessage(msg: WSMessage) {
     case "game:action":
       onGuestActionCb?.(msg.action)
       break
-    case "pong":
-      break
   }
 }
 
-// --- Heartbeat ---
-function startHeartbeat() {
-  stopHeartbeat()
-  heartbeatInterval = setInterval(() => {
-    if (ws?.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: "ping" }))
+// --- Message queue for when DC isn't open yet ---
+let pendingMessages: string[] = []
+
+function flushPending() {
+  if (dc?.readyState === "open" && pendingMessages.length > 0) {
+    log(`flushing ${pendingMessages.length} pending messages`)
+    for (const msg of pendingMessages) {
+      dc.send(msg)
     }
-  }, 15000)
-}
-
-function stopHeartbeat() {
-  if (heartbeatInterval) {
-    clearInterval(heartbeatInterval)
-    heartbeatInterval = null
+    pendingMessages = []
   }
 }
 
-// --- Reconnection ---
-function attemptReconnect() {
-  if (!reconnectParams || reconnectAttempts >= 3) {
+// --- DataChannel wiring ---
+function wireDataChannel(channel: RTCDataChannel) {
+  dc = channel
+  log("wireDataChannel called, current readyState:", channel.readyState)
+
+  channel.onopen = () => {
+    log("DataChannel OPEN")
+    connectionState.value = "connected"
+    flushPending()
+  }
+
+  channel.onmessage = (event) => {
+    let msg: WSMessage
+    try {
+      msg = JSON.parse(event.data)
+    } catch {
+      return
+    }
+    handleMessage(msg)
+  }
+
+  channel.onclose = () => {
+    log("DataChannel CLOSED")
+    if (connectionState.value === "connected") {
+      onPlayerLeftCb?.()
+    }
     connectionState.value = "disconnected"
-    error.value = "Unable to reconnect"
-    return
   }
 
-  reconnectAttempts++
-  const delay = Math.pow(2, reconnectAttempts - 1) * 1000
-  connectionState.value = "reconnecting"
+  channel.onerror = (e) => {
+    log("DataChannel ERROR", e)
+  }
+}
 
-  setTimeout(() => {
-    if (reconnectParams && connectionState.value === "reconnecting") {
-      connectWebSocket(reconnectParams.code, reconnectParams.playerRole, reconnectParams.name)
+// --- Wait for ICE gathering to complete so SDP contains all candidates ---
+function waitForIceComplete(peerConnection: RTCPeerConnection): Promise<void> {
+  return new Promise((resolve) => {
+    if (peerConnection.iceGatheringState === "complete") {
+      log("ICE gathering already complete")
+      resolve()
+      return
     }
-  }, delay)
+    peerConnection.onicecandidate = (event) => {
+      if (event.candidate) {
+        log("ICE candidate:", event.candidate.candidate.substring(0, 60))
+      } else {
+        log("ICE gathering complete (null candidate)")
+        resolve()
+      }
+    }
+    setTimeout(() => {
+      log("ICE gathering timeout (10s), state:", peerConnection.iceGatheringState)
+      resolve()
+    }, 10000)
+  })
+}
+
+function stopPolling() {
+  if (pollInterval) {
+    clearInterval(pollInterval)
+    pollInterval = null
+  }
+}
+
+function monitorConnection(peerConnection: RTCPeerConnection) {
+  peerConnection.oniceconnectionstatechange = () => {
+    log("ICE connection state:", peerConnection.iceConnectionState)
+  }
+  peerConnection.onconnectionstatechange = () => {
+    log("Connection state:", peerConnection.connectionState)
+  }
+  peerConnection.onsignalingstatechange = () => {
+    log("Signaling state:", peerConnection.signalingState)
+  }
 }
 
 // --- Public actions ---
 async function createRoom(playerName: string): Promise<string> {
   let res: Response
   try {
-    res = await fetch("/api/rooms", { method: "POST" })
+    res = await fetch("/api/rooms", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ hostName: playerName }),
+    })
   } catch (e) {
-    error.value = "Cannot reach game server. Is the worker running?"
+    error.value = "Cannot reach game server."
     connectionState.value = "disconnected"
     throw e
   }
@@ -169,10 +197,66 @@ async function createRoom(playerName: string): Promise<string> {
 
   const data = await res.json() as { roomCode: string }
   const code = data.roomCode
+  log("Room created:", code)
 
   role.value = "host"
   roomCode.value = code
-  connectWebSocket(code, "host", playerName)
+  connectionState.value = "connecting"
+  error.value = null
+
+  // Create RTCPeerConnection and DataChannel
+  pc = new RTCPeerConnection(RTC_CONFIG)
+  monitorConnection(pc)
+  dc = pc.createDataChannel("game", { ordered: true })
+  wireDataChannel(dc)
+
+  // Generate offer, wait for ICE gathering, use complete SDP
+  log("Creating offer...")
+  const offer = await pc.createOffer()
+  await pc.setLocalDescription(offer)
+  log("Waiting for ICE gathering...")
+  await waitForIceComplete(pc)
+
+  const completeOffer = pc.localDescription!
+  log("Offer SDP length:", completeOffer.sdp?.length, "has candidates:", completeOffer.sdp?.includes("a=candidate"))
+
+  // Post complete offer to signaling server
+  await fetch(`/api/signal/${code}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ hostOffer: completeOffer }),
+  })
+  log("Offer posted to signaling server")
+
+  // Show waiting screen
+  handleMessage({ type: "room:created", roomCode: code })
+  connectionState.value = "connected"
+
+  // Poll for guest answer
+  pollInterval = setInterval(async () => {
+    try {
+      const pollRes = await fetch(`/api/signal/${code}`)
+      if (!pollRes.ok) return
+      const room = await pollRes.json() as {
+        guestAnswer: RTCSessionDescriptionInit | null
+        guestName: string | null
+      }
+
+      if (room.guestAnswer && pc) {
+        stopPolling()
+        log("Guest answer received, setting remote description...")
+
+        await pc.setRemoteDescription(room.guestAnswer)
+        log("Remote description set, connection state:", pc.connectionState, "ice:", pc.iceConnectionState)
+
+        // Navigate host to game immediately
+        opponentName.value = room.guestName || "Guest"
+        handleMessage({ type: "room:player-joined", guestName: room.guestName || "Guest" })
+      }
+    } catch (e) {
+      log("Poll error:", e)
+    }
+  }, 2000)
 
   return code
 }
@@ -180,29 +264,112 @@ async function createRoom(playerName: string): Promise<string> {
 async function joinRoom(code: string, playerName: string): Promise<void> {
   role.value = "guest"
   roomCode.value = code.toUpperCase()
-  connectWebSocket(code.toUpperCase(), "guest", playerName)
+  connectionState.value = "connecting"
+  error.value = null
+
+  const upperCode = code.toUpperCase()
+  log("Joining room:", upperCode)
+
+  // Get host offer from signaling server
+  let signalRes: Response
+  try {
+    signalRes = await fetch(`/api/signal/${upperCode}`)
+  } catch (e) {
+    error.value = "Cannot reach game server."
+    connectionState.value = "disconnected"
+    throw e
+  }
+
+  if (!signalRes.ok) {
+    error.value = "Room not found"
+    connectionState.value = "disconnected"
+    throw new Error(error.value)
+  }
+
+  const room = await signalRes.json() as {
+    hostName: string
+    hostOffer: RTCSessionDescriptionInit | null
+  }
+
+  if (!room.hostOffer) {
+    error.value = "Host hasn't finished setting up. Try again."
+    connectionState.value = "disconnected"
+    throw new Error(error.value)
+  }
+
+  log("Host offer received, SDP length:", (room.hostOffer as any).sdp?.length)
+
+  // Create RTCPeerConnection
+  pc = new RTCPeerConnection(RTC_CONFIG)
+  monitorConnection(pc)
+
+  // Listen for data channel from host
+  pc.ondatachannel = (event) => {
+    log("ondatachannel fired!")
+    wireDataChannel(event.channel)
+  }
+
+  // Set complete host offer
+  log("Setting remote description (host offer)...")
+  await pc.setRemoteDescription(room.hostOffer)
+  log("Remote description set, creating answer...")
+
+  // Create answer, wait for ICE, use complete SDP
+  const answer = await pc.createAnswer()
+  await pc.setLocalDescription(answer)
+  log("Waiting for ICE gathering...")
+  await waitForIceComplete(pc)
+
+  const completeAnswer = pc.localDescription!
+  log("Answer SDP length:", completeAnswer.sdp?.length, "has candidates:", completeAnswer.sdp?.includes("a=candidate"))
+
+  // Post complete answer to signaling server
+  await fetch(`/api/signal/${upperCode}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      guestAnswer: completeAnswer,
+      guestName: playerName,
+    }),
+  })
+  log("Answer posted to signaling server")
+
+  // Navigate guest to game — we have the host name from signaling
+  opponentName.value = room.hostName
+  handleMessage({ type: "room:joined", roomCode: upperCode, hostName: room.hostName })
 }
 
 function sendGameState(state: GameState) {
-  if (ws?.readyState === WebSocket.OPEN && role.value === "host") {
-    ws.send(JSON.stringify({ type: "game:state-sync", state }))
+  if (role.value !== "host") return
+  const msg = JSON.stringify({ type: "game:state-sync", state })
+  if (dc?.readyState === "open") {
+    dc.send(msg)
+  } else {
+    pendingMessages = pendingMessages.filter(m => !m.includes('"game:state-sync"'))
+    pendingMessages.push(msg)
   }
 }
 
 function sendAction(action: GuestAction) {
-  if (ws?.readyState === WebSocket.OPEN && role.value === "guest") {
-    ws.send(JSON.stringify({ type: "game:action", action }))
+  if (role.value !== "guest") return
+  const msg = JSON.stringify({ type: "game:action", action })
+  if (dc?.readyState === "open") {
+    dc.send(msg)
+  } else {
+    pendingMessages.push(msg)
   }
 }
 
 function disconnect() {
-  stopHeartbeat()
-  reconnectParams = null
-  reconnectAttempts = 0
-  if (ws) {
-    ws.onclose = null
-    ws.close()
-    ws = null
+  stopPolling()
+  pendingMessages = []
+  if (dc) {
+    try { dc.close() } catch {}
+    dc = null
+  }
+  if (pc) {
+    try { pc.close() } catch {}
+    pc = null
   }
   connectionState.value = "disconnected"
   roomCode.value = null
@@ -212,21 +379,16 @@ function disconnect() {
 
 export function useMultiplayer() {
   return {
-    // State
     connectionState,
     roomCode,
     role,
     opponentName,
     error,
-
-    // Actions
     createRoom,
     joinRoom,
     sendGameState,
     sendAction,
     disconnect,
-
-    // Event registration
     onStateSync,
     onGuestAction,
     onPlayerJoined,
