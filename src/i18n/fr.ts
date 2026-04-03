@@ -118,4 +118,16 @@ export default {
   vsFriend: "vs Ami",
   playerNames: "Noms des Joueurs",
   enterName: "Entrez un nom",
+
+  // Online multiplayer
+  playOnline: "Jouer en Ligne",
+  onlineGame: "Partie en Ligne",
+  connecting: "Connexion",
+  shareCodeWithFriend: "Partagez ce code avec votre ami pour commencer la partie",
+  opponentDisconnected: "Adversaire Déconnecté",
+  waitingForReconnect: "En attente de la reconnexion de votre adversaire...",
+  backToMenu: "Retour au Menu",
+  back: "Retour",
+  cancel: "Annuler",
+  loading: "Chargement",
 }
