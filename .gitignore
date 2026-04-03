@@ -25,3 +25,7 @@ dist-ssr
 
 # Don't expose environment variables in a public repo
 .env
+
+# Local stores and state
+.pnpm-store/
+.wrangler/
