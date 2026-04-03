@@ -196,6 +196,10 @@ async function handleAction() {
           ],
           { qualificationScore: qualificationScore.value, mode: "vs-player-online", role: "host" }
         )
+        sessionStorage.setItem("mp_session", JSON.stringify({
+          role: "host", name, code: multiplayer.roomCode.value,
+          qualificationScore: qualificationScore.value, guestName,
+        }))
         router.push(`/game/${multiplayer.roomCode.value}`)
       })
     } else {
@@ -209,6 +213,9 @@ async function handleAction() {
           ],
           { mode: "vs-player-online", role: "guest" }
         )
+        sessionStorage.setItem("mp_session", JSON.stringify({
+          role: "guest", name, code, hostName,
+        }))
         router.push(`/game/${code}`)
       })
       await multiplayer.joinRoom(code, name)

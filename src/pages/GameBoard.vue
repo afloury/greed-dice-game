@@ -267,10 +267,11 @@ import DiceControls from "../components/DiceControls.vue"
 import DevPanel from "../components/DevPanel.vue"
 import BaseButton from "../components/BaseButton.vue"
 import { computed, onMounted, onUnmounted, ref, watch } from "vue"
-import { useRouter } from "vue-router"
+import { useRouter, useRoute } from "vue-router"
 
 const store = useGameStore()
 const router = useRouter()
+const route = useRoute()
 const isDev = import.meta.env.DEV
 const { t, isEnglish, toggleLanguage } = useI18n()
 const { soundVolume, spinningDice, playDiceSound, startSpinAnimation, onDiceRolled } = useGameSound()
@@ -287,45 +288,52 @@ const toggleSettings = () => {
   document.body.classList.toggle("modal-open", showSettings.value)
 }
 
-onMounted(() => {
-  store.setRollCallback(onDiceRolled)
+interface MpSession {
+  role: "host" | "guest"
+  name: string
+  code: string
+  hostName?: string
+  guestName?: string
+  qualificationScore?: number
+}
 
-  // Wire multiplayer events
-  if (isOnline.value) {
-    if (store.multiplayerRole === "host") {
-      // Host: process guest actions and sync state after mutations
-      multiplayer.onGuestAction((action) => {
-        store.handleRemoteAction(action)
-      })
-    } else {
-      // Guest: apply remote state from host
-      multiplayer.onStateSync((state) => {
-        store.applyRemoteState(state)
-      })
-    }
+function saveGameStateToSession() {
+  sessionStorage.setItem("mp_gameState", JSON.stringify(store.gameState))
+}
 
-    // Host: send initial state so guest can catch up
+function wireMultiplayerEvents() {
+  if (store.multiplayerRole === "host") {
+    multiplayer.onGuestAction((action) => {
+      store.handleRemoteAction(action)
+    })
+    multiplayer.sendGameState(store.gameState)
+  } else {
+    multiplayer.onStateSync((state) => {
+      store.applyRemoteState(state)
+      saveGameStateToSession()
+    })
+  }
+
+  multiplayer.onPlayerLeft(() => { opponentDisconnected.value = true })
+  multiplayer.onPlayerJoined(() => {
+    opponentDisconnected.value = false
     if (store.multiplayerRole === "host") {
       multiplayer.sendGameState(store.gameState)
     }
+  })
+  multiplayer.onPlayerReconnected(() => {
+    opponentDisconnected.value = false
+    if (store.multiplayerRole === "host") {
+      multiplayer.sendGameState(store.gameState)
+    }
+  })
 
-    multiplayer.onPlayerLeft(() => { opponentDisconnected.value = true })
-    multiplayer.onPlayerReconnected(() => {
-      opponentDisconnected.value = false
-      // Host re-sends state on reconnect
-      if (store.multiplayerRole === "host") {
-        multiplayer.sendGameState(store.gameState)
-      }
-    })
-  }
-})
-
-// Host: sync state to guest after every gameState change
-let syncDebounce: ReturnType<typeof setTimeout> | null = null
-if (store.gameMode === "vs-player-online" && store.multiplayerRole === "host") {
+  // Host: sync state to guest after every gameState change
   watch(
     () => store.gameState,
     (state) => {
+      if (store.multiplayerRole !== "host") return
+      saveGameStateToSession()
       if (syncDebounce) clearTimeout(syncDebounce)
       syncDebounce = setTimeout(() => {
         multiplayer.sendGameState(state)
@@ -335,9 +343,65 @@ if (store.gameMode === "vs-player-online" && store.multiplayerRole === "host") {
   )
 }
 
+let syncDebounce: ReturnType<typeof setTimeout> | null = null
+
+onMounted(async () => {
+  store.setRollCallback(onDiceRolled)
+
+  // Reconnect to multiplayer if we have a room code in URL but no active game
+  const roomCode = route.params.code as string | undefined
+  if (roomCode && !isOnline.value) {
+    const raw = sessionStorage.getItem("mp_session")
+    const savedState = sessionStorage.getItem("mp_gameState")
+    if (raw) {
+      try {
+        const session: MpSession = JSON.parse(raw)
+        if (session.code.toUpperCase() !== roomCode.toUpperCase()) throw new Error("code mismatch")
+
+        // Restore game with saved players
+        const players = session.role === "host"
+          ? [
+              { id: 0, name: session.name, isComputer: false },
+              { id: 1, name: session.guestName || "Guest", isComputer: false },
+            ]
+          : [
+              { id: 0, name: session.hostName || "Host", isComputer: false },
+              { id: 1, name: session.name, isComputer: false },
+            ]
+
+        store.startGame(players, {
+          qualificationScore: session.qualificationScore,
+          mode: "vs-player-online",
+          role: session.role,
+        })
+
+        // Restore saved game state if available
+        if (savedState) {
+          store.applyRemoteState(JSON.parse(savedState))
+        }
+
+        // Reconnect WebSocket with correct role — DO handles reconnection
+        multiplayer.reconnectToRoom(roomCode, session.name, session.role)
+        wireMultiplayerEvents()
+        return
+      } catch {
+        router.push("/")
+        return
+      }
+    }
+  }
+
+  // Wire multiplayer events for normal (non-reconnect) flow
+  if (isOnline.value) {
+    wireMultiplayerEvents()
+  }
+})
+
 onUnmounted(() => {
   if (isOnline.value) {
     multiplayer.disconnect()
+    sessionStorage.removeItem("mp_session")
+    sessionStorage.removeItem("mp_gameState")
   }
 })
 
