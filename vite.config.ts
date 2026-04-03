@@ -6,13 +6,15 @@ import tailwindcss from "@tailwindcss/vite"
 export default defineConfig({
   plugins: [vue(), tailwindcss()],
   build: {
-    sourcemap: true, // Ensures source maps are generated for better stack traces
+    sourcemap: true,
   },
-  define: {
-    // This ensures import.meta.env.DEV is properly defined at build time
-    // Will be true during development and false in production build
-    // "import.meta.env.DEV": JSON.stringify(
-    //   process.env.NODE_ENV === "development"
-    // ),
+  server: {
+    proxy: {
+      "/api": {
+        target: "http://localhost:8787",
+        changeOrigin: true,
+        ws: true,
+      },
+    },
   },
 })
