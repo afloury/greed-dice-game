@@ -1,6 +1,7 @@
 import { defineStore } from "pinia"
 import { ref, computed, watch } from "vue"
 import type { GameState } from "../types/game"
+import type { GuestAction } from "../types/multiplayer"
 import { useI18n } from "../i18n"
 import { scoreDiceRoll, scoreSelectedDice } from "../composables/useScoringEngine"
 import { useComputerAI } from "../composables/useComputerAI"
@@ -32,6 +33,8 @@ export const useGameStore = defineStore("game", () => {
 
   // --- State ---
   const showMenu = ref(true)
+  const gameMode = ref<"vs-computer" | "vs-player-online">("vs-computer")
+  const multiplayerRole = ref<"host" | "guest" | null>(null)
 
   const gameState = ref<GameState>({
     players: [
@@ -57,7 +60,13 @@ export const useGameStore = defineStore("game", () => {
 
   const currentPlayer = computed(() => gameState.value.players[gameState.value.currentPlayer])
 
-  const isPlayerTurn = computed(() => !currentPlayer.value.isComputer)
+  const isPlayerTurn = computed(() => {
+    if (gameMode.value === "vs-player-online") {
+      const localPlayerIndex = multiplayerRole.value === "host" ? 0 : 1
+      return gameState.value.currentPlayer === localPlayerIndex
+    }
+    return !currentPlayer.value.isComputer
+  })
 
   const canRoll = computed(() => {
     if (gameState.value.isGameOver) return false
@@ -280,7 +289,7 @@ export const useGameStore = defineStore("game", () => {
     gameState.value.currentPlayer =
       (gameState.value.currentPlayer + 1) % gameState.value.players.length
 
-    if (currentPlayer.value.isComputer && !gameState.value.isGameOver) {
+    if (gameMode.value === "vs-computer" && currentPlayer.value.isComputer && !gameState.value.isGameOver) {
       setTimeout(playComputerTurn, 2000)
     }
   }
@@ -324,6 +333,8 @@ export const useGameStore = defineStore("game", () => {
       isComputer: p.isComputer,
     }))
 
+    gameMode.value = "vs-computer"
+    multiplayerRole.value = null
     showMenu.value = true
     setTimeout(() => {
       setPlayers(players, qualificationScore)
@@ -332,10 +343,37 @@ export const useGameStore = defineStore("game", () => {
 
   function startGame(
     players: Array<{ id: number; name: string; isComputer: boolean }>,
-    options?: { qualificationScore?: number }
+    options?: { qualificationScore?: number; mode?: "vs-computer" | "vs-player-online"; role?: "host" | "guest" }
   ) {
+    gameMode.value = options?.mode ?? "vs-computer"
+    multiplayerRole.value = options?.role ?? null
     setPlayers(players, options?.qualificationScore)
     showMenu.value = false
+  }
+
+  /** Guest: replace local state entirely with host's state */
+  function applyRemoteState(state: GameState) {
+    Object.assign(gameState.value, state)
+  }
+
+  /** Host: process an action received from the guest */
+  function handleRemoteAction(action: GuestAction) {
+    // Only host processes guest actions, and only during guest's turn
+    if (multiplayerRole.value !== "host") return
+    if (gameState.value.currentPlayer !== 1) return
+
+    switch (action.kind) {
+      case "roll":
+        rollDice()
+        break
+      case "select-die":
+      case "deselect-die":
+        toggleDieSelection(action.index)
+        break
+      case "bank":
+        keepScore()
+        break
+    }
   }
 
   // --- Wire composables ---
@@ -355,10 +393,12 @@ export const useGameStore = defineStore("game", () => {
     calculatePotentialScore,
   })
 
-  // --- Public API (unchanged) ---
+  // --- Public API ---
   return {
     gameState,
     showMenu,
+    gameMode,
+    multiplayerRole,
 
     MIN_QUALIFYING_SCORE,
     MIN_QUALIFYING_SCORE_OPTIONS,
@@ -367,6 +407,7 @@ export const useGameStore = defineStore("game", () => {
     isPlayerTurn,
     canRoll,
     canKeepScore,
+
     setQualificationScore,
     setRollCallback,
     rollDice,
@@ -382,5 +423,7 @@ export const useGameStore = defineStore("game", () => {
     setGameOver,
     updateDieValue,
     startGame,
+    applyRemoteState,
+    handleRemoteAction,
   }
 })

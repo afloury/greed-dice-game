@@ -91,7 +91,7 @@
         </div>
       </div>
 
-      <!-- Start Game Button -->
+      <!-- Start Game Buttons -->
       <BaseButton
         @click="handleStartGame"
         class="mt-6"
@@ -99,6 +99,15 @@
         variant="primary"
       >
         {{ t("newGame") }}
+      </BaseButton>
+
+      <BaseButton
+        @click="router.push('/lobby')"
+        class="mt-4"
+        size="lg"
+        variant="secondary"
+      >
+        {{ t("playOnline") }}
       </BaseButton>
     </div>
   </div>

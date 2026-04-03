@@ -79,6 +79,32 @@
       <!-- Computer AI Status -->
       <ComputerAI ref="computerAIRef" />
 
+      <!-- Opponent disconnected overlay (online) -->
+      <div v-if="isOnline && opponentDisconnected" class="game-over-screen">
+        <div class="game-over-content">
+          <h2 class="text-2xl font-bold mb-4">{{ t("opponentDisconnected") }}</h2>
+          <p class="mb-6">{{ t("waitingForReconnect") }}</p>
+          <div class="loader mx-auto mb-6" />
+          <BaseButton @click="handleResetGame" variant="secondary" :label="t('backToMenu')" />
+        </div>
+      </div>
+
+      <!-- Connection status indicator (online) -->
+      <div v-if="isOnline" class="mb-2 flex items-center gap-2 text-sm">
+        <span
+          class="w-2.5 h-2.5 rounded-full inline-block"
+          :class="{
+            'bg-[var(--color-success)]': multiplayer.connectionState.value === 'connected',
+            'bg-[var(--color-warning)]': multiplayer.connectionState.value === 'reconnecting',
+            'bg-[var(--color-danger)]': multiplayer.connectionState.value === 'disconnected',
+            'bg-[var(--color-accent-secondary)]': multiplayer.connectionState.value === 'connecting',
+          }"
+        />
+        <span class="text-[var(--color-accent-secondary)]">
+          {{ t("onlineGame") }} — {{ multiplayer.opponentName.value || "..." }}
+        </span>
+      </div>
+
       <!-- Game Over Screen -->
       <div v-if="store.gameState.isGameOver" class="game-over-screen">
         <div class="game-over-content">
@@ -119,7 +145,7 @@
           }))"
           :is-rolling="spinningDice.some((spinning: boolean) => spinning)"
           :is-player-turn="store.isPlayerTurn"
-          @toggle-die-selection="store.toggleDieSelection"
+          @toggle-die-selection="handleToggleDie"
         />
 
         <div v-else class="dice-placeholder text-center my-8">
@@ -228,6 +254,7 @@
 import { useGameStore } from "../stores/gameStore"
 import { useI18n } from "../i18n"
 import { useGameSound } from "../composables/useGameSound"
+import { useMultiplayer } from "../composables/useMultiplayer"
 import ComputerAI from "../components/ComputerAI.vue"
 import GameSettings from "../components/GameSettings.vue"
 import GameScoring from "../components/GameScoring.vue"
@@ -235,7 +262,7 @@ import DiceDisplay from "../components/DiceDisplay.vue"
 import DiceControls from "../components/DiceControls.vue"
 import DevPanel from "../components/DevPanel.vue"
 import BaseButton from "../components/BaseButton.vue"
-import { computed, onMounted, ref } from "vue"
+import { computed, onMounted, onUnmounted, ref, watch } from "vue"
 import { useRouter } from "vue-router"
 
 const store = useGameStore()
@@ -243,6 +270,11 @@ const router = useRouter()
 const isDev = import.meta.env.DEV
 const { t, isEnglish, toggleLanguage } = useI18n()
 const { soundVolume, spinningDice, playDiceSound, startSpinAnimation, onDiceRolled } = useGameSound()
+
+// --- Multiplayer ---
+const multiplayer = useMultiplayer()
+const isOnline = computed(() => store.gameMode === "vs-player-online")
+const opponentDisconnected = ref(false)
 
 const showSettings = ref(false)
 
@@ -253,6 +285,51 @@ const toggleSettings = () => {
 
 onMounted(() => {
   store.setRollCallback(onDiceRolled)
+
+  // Wire multiplayer events
+  if (isOnline.value) {
+    if (store.multiplayerRole === "host") {
+      // Host: process guest actions and sync state after mutations
+      multiplayer.onGuestAction((action) => {
+        store.handleRemoteAction(action)
+      })
+    } else {
+      // Guest: apply remote state from host
+      multiplayer.onStateSync((state) => {
+        store.applyRemoteState(state)
+      })
+    }
+
+    multiplayer.onPlayerLeft(() => { opponentDisconnected.value = true })
+    multiplayer.onPlayerReconnected(() => {
+      opponentDisconnected.value = false
+      // Host re-sends state on reconnect
+      if (store.multiplayerRole === "host") {
+        multiplayer.sendGameState(store.gameState)
+      }
+    })
+  }
+})
+
+// Host: sync state to guest after every gameState change
+let syncDebounce: ReturnType<typeof setTimeout> | null = null
+if (store.gameMode === "vs-player-online" && store.multiplayerRole === "host") {
+  watch(
+    () => store.gameState,
+    (state) => {
+      if (syncDebounce) clearTimeout(syncDebounce)
+      syncDebounce = setTimeout(() => {
+        multiplayer.sendGameState(state)
+      }, 50)
+    },
+    { deep: true }
+  )
+}
+
+onUnmounted(() => {
+  if (isOnline.value) {
+    multiplayer.disconnect()
+  }
 })
 
 // --- Computed ---
@@ -288,21 +365,42 @@ const rollDiceButtonTooltip = computed(() => {
 })
 
 // --- Actions ---
+const isGuest = computed(() => isOnline.value && store.multiplayerRole === "guest")
+
 function handleResetGame() {
+  if (isOnline.value) multiplayer.disconnect()
   store.resetGame()
   router.push("/")
 }
 
 function handleKeepScore() {
-  if (store.canKeepScore && store.isPlayerTurn) store.keepScore()
+  if (!store.canKeepScore || !store.isPlayerTurn) return
+  if (isGuest.value) {
+    multiplayer.sendAction({ kind: "bank" })
+  } else {
+    store.keepScore()
+  }
 }
 
 function handleRollDice() {
   if (!store.canRoll || !store.isPlayerTurn) return
-  playDiceSound()
-  store.rollDice()
-  spinningDice.value = store.gameState.dice.map(() => true)
-  startSpinAnimation()
+  if (isGuest.value) {
+    multiplayer.sendAction({ kind: "roll" })
+  } else {
+    playDiceSound()
+    store.rollDice()
+    spinningDice.value = store.gameState.dice.map(() => true)
+    startSpinAnimation()
+  }
+}
+
+function handleToggleDie(index: number) {
+  if (isGuest.value) {
+    const die = store.gameState.dice[index]
+    multiplayer.sendAction({ kind: die.isSelected ? "deselect-die" : "select-die", index })
+  } else {
+    store.toggleDieSelection(index)
+  }
 }
 
 const getWinnerName = () => {
