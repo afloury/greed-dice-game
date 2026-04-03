@@ -6,9 +6,11 @@
  * No game logic — the host client is authoritative.
  */
 
+import { DurableObject } from "cloudflare:workers"
+
 interface Env {}
 
-export class GameRoom extends CloudflareWorkersModule.DurableObject<Env> {
+export class GameRoom extends DurableObject<Env> {
   private hostName: string | null = null
   private guestName: string | null = null
   private closeTimeout: ReturnType<typeof setTimeout> | null = null

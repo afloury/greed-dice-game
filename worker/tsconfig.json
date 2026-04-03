@@ -4,12 +4,15 @@
     "module": "ES2022",
     "moduleResolution": "bundler",
     "lib": ["ES2022"],
-    "types": ["@cloudflare/workers-types"],
+    "types": ["@cloudflare/workers-types/2021-11-03"],
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "outDir": "./dist",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "paths": {
+      "cloudflare:workers": ["../node_modules/@cloudflare/workers-types/2021-11-03/index.d.ts"]
+    }
   },
   "include": ["src/**/*.ts"]
 }
