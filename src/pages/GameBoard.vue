@@ -57,6 +57,10 @@
             >
               ({{ t("computer") }})
             </span>
+            <span v-else-if="isOnline" class="text-sm text-[var(--color-accent-secondary)]">
+              <template v-if="(store.multiplayerRole === 'host' && player.id === 0) || (store.multiplayerRole === 'guest' && player.id === 1)">(me)</template>
+              <template v-else-if="player.id === 0">(host)</template>
+            </span>
             <span v-else class="text-sm text-[var(--color-accent-secondary)]">
               ({{ t(player.id === 0 ? "player1" : "player2") }})
             </span>
@@ -298,6 +302,11 @@ onMounted(() => {
       multiplayer.onStateSync((state) => {
         store.applyRemoteState(state)
       })
+    }
+
+    // Host: send initial state so guest can catch up
+    if (store.multiplayerRole === "host") {
+      multiplayer.sendGameState(store.gameState)
     }
 
     multiplayer.onPlayerLeft(() => { opponentDisconnected.value = true })

@@ -208,10 +208,10 @@ export const useGameStore = defineStore("game", () => {
     calculateRollScore()
   }
 
-  function toggleDieSelection(index: number) {
+  function toggleDieSelection(index: number, { remote = false } = {}) {
     const die = gameState.value.dice[index]
     if (
-      !isPlayerTurn.value ||
+      (!remote && !isPlayerTurn.value) ||
       die.isLocked ||
       gameState.value.isBust ||
       gameState.value.diceHidden ||
@@ -368,7 +368,7 @@ export const useGameStore = defineStore("game", () => {
         break
       case "select-die":
       case "deselect-die":
-        toggleDieSelection(action.index)
+        toggleDieSelection(action.index, { remote: true })
         break
       case "bank":
         keepScore()

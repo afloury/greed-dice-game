@@ -137,12 +137,14 @@ import { ref, computed } from "vue"
 import { useRouter } from "vue-router"
 import { useI18n } from "../i18n"
 import { useMultiplayer } from "../composables/useMultiplayer"
+import { useGameStore } from "../stores/gameStore"
 import SelectorButton from "../components/SelectorButton.vue"
 import BaseButton from "../components/BaseButton.vue"
 
 const router = useRouter()
 const { t, isEnglish } = useI18n()
 const multiplayer = useMultiplayer()
+const store = useGameStore()
 
 const lobbyMode = ref<"create" | "join">("create")
 const playerName = ref("")
@@ -182,19 +184,37 @@ function generateRandomName() {
 async function handleAction() {
   const name = playerName.value.trim() || t("player")
 
-  if (lobbyMode.value === "create") {
-    await multiplayer.createRoom(name)
-    // Wait for opponent to join
-    multiplayer.onPlayerJoined(() => {
-      router.push(`/game/${multiplayer.roomCode.value}`)
-    })
-  } else {
-    const code = joinCode.value.trim().toUpperCase()
-    multiplayer.onStateSync(() => {
-      // First state sync means game is ready — navigate
-      router.push(`/game/${multiplayer.roomCode.value}`)
-    })
-    await multiplayer.joinRoom(code, name)
+  try {
+    if (lobbyMode.value === "create") {
+      await multiplayer.createRoom(name)
+      // Wait for opponent to join, then init game and navigate
+      multiplayer.onPlayerJoined((guestName: string) => {
+        store.startGame(
+          [
+            { id: 0, name, isComputer: false },
+            { id: 1, name: guestName, isComputer: false },
+          ],
+          { qualificationScore: qualificationScore.value, mode: "vs-player-online", role: "host" }
+        )
+        router.push(`/game/${multiplayer.roomCode.value}`)
+      })
+    } else {
+      const code = joinCode.value.trim().toUpperCase()
+      // Wait for room:joined to get the host's actual name
+      multiplayer.onRoomJoined((hostName: string) => {
+        store.startGame(
+          [
+            { id: 0, name: hostName, isComputer: false },
+            { id: 1, name, isComputer: false },
+          ],
+          { mode: "vs-player-online", role: "guest" }
+        )
+        router.push(`/game/${code}`)
+      })
+      await multiplayer.joinRoom(code, name)
+    }
+  } catch {
+    // Error is already set in multiplayer.error by the composable
   }
 }
 

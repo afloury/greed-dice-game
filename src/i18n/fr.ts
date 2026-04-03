@@ -60,9 +60,9 @@ export default {
   transitioningToNextPlayer: "Passage au joueur suivant...",
 
   // Bust messages
-  bustExceededMax: "ÉCHEC! Dépassement de 10,000 points",
+  bustExceededMax: "Nénette ! Dépassement de 10 000 points",
   bustGeneric: "Nénette ! Aucun dé comptabilisable",
-  bustLostPoints: "Échec! {0} a perdu {1} points de ce tour!",
+  bustLostPoints: "Nénette ! {0} a perdu {1} points de ce tour !",
 
   // Qualification warning
   qualificationRequired: "Qualification Requise!",
@@ -89,11 +89,11 @@ export default {
   fiveOfAKind: "Cinq identiques: 3× brelan",
   straight: "Suite (1-5 ou 2-6): 1,500 points",
   noScoringDice:
-    "Aucun dé comptabilisable: Échec (perte de tous les points du tour!)",
+    "Aucun dé comptabilisable : Nénette (perte de tous les points du tour !)",
 
   // Roll button tooltips
   notYourTurn: "Ce n'est pas votre tour de lancer",
-  cantRollBust: "Impossible de lancer après un échec",
+  cantRollBust: "Impossible de lancer après une nénette",
   allDiceLocked: "Tous les dés sont verrouillés",
   mustSelectDie: "Vous devez sélectionner au moins un dé avant de relancer",
   rollToStartTurn: "Lancez les dés pour commencer votre tour",
