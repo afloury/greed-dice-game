@@ -5,7 +5,7 @@ import WebRTCPlayground from "./pages/Playground.vue"
 
 const routes = [
   { path: "/", component: GameMenu },
-  { path: "/game/:code?", component: GameBoard },
+  { path: "/game", component: GameBoard },
   { path: "/playground", component: WebRTCPlayground },
 ]
 

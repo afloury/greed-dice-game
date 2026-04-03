@@ -1,24 +1,5 @@
 <template>
   <div class="min-h-screen p-4 game-background">
-    <!-- Game Not Found Overlay with loader -->
-    <div v-if="gameNotFound" class="game-over-screen">
-      <div
-        v-if="showNotFoundLoader"
-        class="game-over-content flex flex-col items-center justify-center"
-      >
-        <div class="loader mb-6" />
-        <span class="text-lg text-accent-secondary">{{ t("loading") }}...</span>
-      </div>
-      <div v-else class="game-over-content">
-        <h2 class="text-3xl font-bold mb-4">{{ t("gameNotFound") }}</h2>
-        <p class="mb-8">{{ t("gameNotFoundDesc") }}</p>
-        <BaseButton
-          @click="router.push('/')"
-          variant="primary"
-          :label="t('newGame')"
-        />
-      </div>
-    </div>
     <div class="max-w-4xl mx-auto">
       <!-- Game Header -->
       <div class="game-panel p-6 mb-6">
@@ -28,7 +9,7 @@
         <div class="flex justify-between items-center">
           <div class="text-lg">
             {{ t("currentPhase") }}
-            <span class="font-semibold text-accent">{{
+            <span class="font-semibold text-[var(--color-accent)]">{{
               t(`phases.${store.gameState.gamePhase}`)
             }}</span>
           </div>
@@ -72,24 +53,24 @@
             {{ player.name }}
             <span
               v-if="player.isComputer"
-              class="text-sm text-accent-secondary"
+              class="text-sm text-[var(--color-accent-secondary)]"
             >
               ({{ t("computer") }})
             </span>
-            <span v-else class="text-sm text-accent-secondary">
+            <span v-else class="text-sm text-[var(--color-accent-secondary)]">
               ({{ t(player.id === 0 ? "player1" : "player2") }})
             </span>
           </h2>
           <div class="text-lg">
             {{ t("totalScore") }}
-            <span class="font-semibold text-accent">{{
+            <span class="font-semibold text-[var(--color-accent)]">{{
               player.totalScore
             }}</span>
           </div>
-          <div v-if="!player.isQualified" class="text-sm text-danger">
+          <div v-if="!player.isQualified" class="text-sm text-[var(--color-danger)]">
             {{ t("needsQualification", [store.MIN_QUALIFYING_SCORE]) }}
           </div>
-          <div v-else class="text-sm text-success">
+          <div v-else class="text-sm text-[var(--color-success)]">
             {{ t("qualified") }}
           </div>
         </div>
@@ -117,21 +98,8 @@
         </div>
       </div>
 
-      <!-- Show waiting message if host is waiting for player 2 -->
-      <div
-        v-if="store.isWaitingForPlayer2"
-        class="game-panel p-6 mb-6 text-center"
-      >
-        <h2 class="text-2xl font-bold mb-4 text-accent">
-          {{ t("waitingForPlayer2") }}
-        </h2>
-        <p class="text-lg">
-          {{ t("waitingForPlayer2Desc", [store.multiplayer?.code || ""]) }}
-        </p>
-      </div>
-
       <!-- Game Board -->
-      <div v-else class="game-panel p-6 mb-6">
+      <div class="game-panel p-6 mb-6">
         <!-- Scoring -->
         <GameScoring
           :current-turn-score="store.gameState.currentTurnScore"
@@ -174,7 +142,7 @@
             <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
             <line x1="12" y1="22.08" x2="12" y2="12"></line>
           </svg>
-          <p class="mt-4 text-accent-secondary">{{ t("rollToStart") }}</p>
+          <p class="mt-4 text-[var(--color-accent-secondary)]">{{ t("rollToStart") }}</p>
         </div>
 
         <!-- Game Controls -->
@@ -195,7 +163,7 @@
 
         <!-- Bust Message -->
         <div v-if="store.gameState.isBust" class="text-center mt-4 mb-2">
-          <div class="p-3 rounded relative bust-message" role="alert">
+          <div class="p-3 rounded relative bg-[rgba(255,90,90,0.15)] border border-[var(--color-danger)] text-[var(--color-danger)]" role="alert">
             <span class="block sm:inline text-lg font-bold">{{
               store.gameState.bustMessage
             }}</span>
@@ -207,7 +175,7 @@
 
         <!-- Qualification Warning Message -->
         <div v-if="showQualificationWarning" class="text-center mt-4 mb-2">
-          <div class="p-3 rounded relative qualification-warning" role="alert">
+          <div class="p-3 rounded relative bg-[rgba(255,182,39,0.15)] border border-[var(--color-warning)] text-[var(--color-warning)]" role="alert">
             <span class="block sm:inline text-lg font-bold">
               {{ t("qualificationRequired") }}
             </span>
@@ -221,29 +189,6 @@
           </div>
         </div>
 
-        <!-- Dice Legend -->
-        <!-- <div
-          class="mt-6 p-3 text-xs grid grid-cols-2 gap-2 max-w-md mx-auto rounded-lg legend-panel"
-        >
-          <div class="flex items-center">
-            <div class="w-4 h-4 mr-1 die-sample selectable-sample"></div>
-            <span>{{ t("selectable") }}</span>
-          </div>
-          <div class="flex items-center">
-            <div class="w-4 h-4 mr-1 die-sample selected-sample"></div>
-            <span>{{ t("selectedDie") }}</span>
-          </div>
-          <div class="flex items-center">
-            <div class="w-4 h-4 mr-1 die-sample locked-sample"></div>
-            <span>{{ t("locked") }}</span>
-          </div>
-          <div class="flex items-center">
-            <div
-              class="w-4 h-4 opacity-70 mr-1 die-sample invalid-sample"
-            ></div>
-            <span>{{ t("notScorable") }}</span>
-          </div>
-        </div> -->
       </div>
 
       <!-- Game Rules -->
@@ -252,7 +197,7 @@
           {{ t("scoringRules") }}
         </h2>
         <div class="grid grid-cols-2 gap-4">
-          <div class="rules-card p-3 rounded-lg">
+          <div class="bg-[rgba(0,0,0,0.15)] border border-[var(--color-border)] p-3 rounded-lg">
             <ul class="list-disc pl-5">
               <li>{{ t("singleOne") }}</li>
               <li>{{ t("singleFive") }}</li>
@@ -260,7 +205,7 @@
               <li>{{ t("threeOfAKind") }}</li>
             </ul>
           </div>
-          <div class="rules-card p-3 rounded-lg">
+          <div class="bg-[rgba(0,0,0,0.15)] border border-[var(--color-border)] p-3 rounded-lg">
             <ul class="list-disc pl-5">
               <li>{{ t("fourOfAKind") }}</li>
               <li>{{ t("fiveOfAKind") }}</li>
@@ -290,51 +235,10 @@ import DiceControls from "../components/DiceControls.vue"
 import DevPanel from "../components/DevPanel.vue"
 import { computed, onMounted, ref, watch } from "vue"
 import BaseButton from "../components/BaseButton.vue"
-import { useRouter, useRoute } from "vue-router"
-import { useGameState } from "../utils/firebase"
+import { useRouter } from "vue-router"
 
 // Use the store directly to maintain reactivity
 const store = useGameStore()
-const route = useRoute()
-// If game state is missing or has no players, consider it not found
-const { data: remoteState } = useGameState(route.params.code as string)
-
-onMounted(() => {
-  // If /game/:code is present, auto-connect to multiplayer
-  const code = route.params.code as string | undefined
-  if (code) {
-    // Determine role: if joining from menu, should be join; if host, should be host
-    // You can store the role in localStorage or as a query param when navigating
-    const role =
-      localStorage.getItem("multiplayerRole") === "host" ? "host" : "join"
-    store.joinGame(code, role, false)
-  }
-})
-
-// Loader for not found modal
-const showNotFoundLoader = ref(true)
-
-// Computed property to detect if the game does not exist
-const gameNotFound = computed(() => {
-  // If we're in multiplayer mode and the code param exists, but there is no game state or no players, consider it not found
-  const code = route.params.code as string | undefined
-  if (!code) return false
-  // If the multiplayer code does not match or game state is missing/empty
-  if (!store.multiplayer || store.multiplayer.code !== code) return false
-  return !remoteState.value
-})
-
-// Watch for gameNotFound to show loader for 1 second
-watch(gameNotFound, (val) => {
-  if (val) {
-    showNotFoundLoader.value = true
-    setTimeout(() => {
-      showNotFoundLoader.value = false
-    }, 1000)
-  } else {
-    showNotFoundLoader.value = true
-  }
-})
 
 const isDev = import.meta.env.DEV
 
@@ -592,66 +496,27 @@ const handleRollDice = () => {
 </script>
 
 <style scoped>
-.loader {
-  border: 6px solid #eee;
-  border-top: 6px solid var(--color-accent);
-  border-radius: 50%;
-  width: 48px;
-  height: 48px;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.game-not-found-message {
-  color: var(--color-danger);
-  font-size: 1.5rem;
-  text-align: center;
-  margin-top: 4rem;
-}
-
-/* ... */
-/* Game-specific styles */
+/* Dual radial gradient background — not expressible in Tailwind */
 .game-background {
   background-color: var(--color-bg);
   background-image: radial-gradient(
-      circle at 10% 20%,
-      rgba(90, 92, 152, 0.1) 0%,
-      rgba(0, 0, 0, 0) 80%
-    ),
+      circle at 10% 20%, rgba(90, 92, 152, 0.1) 0%, rgba(0, 0, 0, 0) 80%),
     radial-gradient(
-      circle at 90% 80%,
-      rgba(247, 86, 124, 0.1) 0%,
-      rgba(0, 0, 0, 0) 80%
-    );
+      circle at 90% 80%, rgba(247, 86, 124, 0.1) 0%, rgba(0, 0, 0, 0) 80%);
 }
 
+/* Gradient text effect */
 .game-title {
-  background: linear-gradient(
-    90deg,
-    var(--color-accent),
-    var(--color-accent-secondary)
-  );
+  background: linear-gradient(90deg, var(--color-accent), var(--color-accent-secondary));
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   display: inline-block;
   font-weight: 800;
   letter-spacing: 1px;
-  text-shadow: none;
 }
 
-.dark .game-title {
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
+/* Active player glow */
 .current-player {
   border: 2px solid var(--color-accent);
   box-shadow: 0 0 15px rgba(247, 86, 124, 0.5);
@@ -659,6 +524,7 @@ const handleRollDice = () => {
   overflow: hidden;
 }
 
+/* Circular icon button with hover lift */
 .game-icon-button {
   background-color: var(--color-card);
   border: 1px solid var(--color-border);
@@ -672,93 +538,21 @@ const handleRollDice = () => {
   justify-content: center;
   transition: all 0.2s ease;
 }
-
 .game-icon-button:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.25);
 }
 
-.game-button.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none !important;
-  box-shadow: none !important;
-}
-
-.bust-message {
-  background-color: rgba(255, 90, 90, 0.15);
-  border: 1px solid var(--color-danger);
-  color: var(--color-danger);
-}
-
-.qualification-warning {
-  background-color: rgba(255, 182, 39, 0.15);
-  border: 1px solid var(--color-warning);
-  color: var(--color-warning);
-}
-
-.legend-panel {
-  background-color: rgba(0, 0, 0, 0.2);
-  border: 1px solid var(--color-border);
-}
-
-.die-sample {
-  border-radius: 2px;
-}
-
-.selectable-sample {
-  background-color: rgba(255, 255, 255, 0.1);
-  border: 1px solid var(--color-border);
-}
-
-.selected-sample {
-  background-color: rgba(92, 184, 228, 0.2);
-  border: 1px solid var(--color-accent-secondary);
-}
-
-.locked-sample {
-  background-color: rgba(68, 207, 108, 0.2);
-  border: 1px solid var(--color-success);
-}
-
-.invalid-sample {
-  background-color: rgba(45, 55, 72, 0.3);
-}
-
-.rules-card {
-  background-color: rgba(0, 0, 0, 0.15);
-  border: 1px solid var(--color-border);
-}
-
-.text-accent {
-  color: var(--color-accent);
-}
-
-.text-accent-secondary {
-  color: var(--color-accent-secondary);
-}
-
-.text-success {
-  color: var(--color-success);
-}
-
-.text-danger {
-  color: var(--color-danger);
-}
-
+/* Game over fullscreen overlay */
 .game-over-screen {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   background-color: rgba(0, 0, 0, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
 }
-
 .game-over-content {
   background-color: var(--color-card);
   border: 2px solid var(--color-accent);
@@ -770,15 +564,8 @@ const handleRollDice = () => {
   box-shadow: 0 0 30px rgba(247, 86, 124, 0.5);
   animation: pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
-
 @keyframes pop-in {
-  0% {
-    transform: scale(0.5);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+  0% { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
 </style>

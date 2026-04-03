@@ -6,72 +6,8 @@
       <h1 class="text-4xl font-bold text-center mb-6 game-title">
         {{ t("gameTitle") }}
       </h1>
-      <!-- Game Mode Selection -->
-      <div class="mb-8">
-        <h2 class="text-xl font-bold mb-4">
-          {{ t("gameModes") }}
-        </h2>
-        <SelectorButton
-          :items="[
-            { value: 'vs-computer', text: t('vsComputer') },
-            {
-              value: 'multiplayer',
-              text: t('multiplayerOnline'),
-              disabled: !isDev,
-            },
-          ]"
-          :selected-value="gameMode"
-          @update:selected="gameMode = $event"
-        />
-        <div v-if="!isDev" class="text-xs text-red-500 mt-2">
-          {{ "Multiplayer is not ready yet." }}
-        </div>
-      </div>
-
-      <!-- Multiplayer options -->
-      <div v-if="gameMode === 'multiplayer'" class="mb-8">
-        <h2 class="text-xl font-bold mb-4">
-          {{ t("multiplayerOptions") || "Multiplayer Options" }}
-        </h2>
-        <SelectorButton
-          :items="[
-            { value: 'host', text: t('hostGame') },
-            { value: 'join', text: t('joinGame') },
-          ]"
-          :selected-value="multiplayerRole"
-          @update:selected="onMultiplayerRoleChange"
-        />
-        <div v-if="multiplayerRole === 'host'" class="mt-4">
-          <label class="block mb-2">{{ t("gameCode") || "Game Code" }}</label>
-          <input
-            v-model="multiplayerCode"
-            type="text"
-            class="flex-1 p-2 rounded border input-field"
-          />
-          <button
-            @click="multiplayerCode = generateRandomCode()"
-            class="p-2 rounded-lg game-button-secondary ml-2"
-            title="Generate random code"
-          >
-            🎲
-          </button>
-        </div>
-        <div v-else class="mt-4">
-          <label class="block mb-2">{{
-            t("enterGameCode") || "Enter Game Code"
-          }}</label>
-          <input
-            v-model="multiplayerCode"
-            type="text"
-            class="flex-1 p-2 rounded border input-field"
-          />
-        </div>
-      </div>
       <!-- Qualification Score Selection -->
-      <div
-        v-if="gameMode !== 'multiplayer' || multiplayerRole === 'host'"
-        class="mb-8"
-      >
+      <div class="mb-8">
         <h2 class="text-xl font-bold mb-4">
           {{ t("qualificationScore") }}
         </h2>
@@ -92,15 +28,9 @@
         <h2 class="text-xl font-bold mb-4">
           {{ t("playerNames") }}
         </h2>
-        <div
-          class="mb-4"
-          v-if="
-            gameMode === 'vs-computer' ||
-            (gameMode === 'multiplayer' && multiplayerRole === 'host')
-          "
-        >
+        <div class="mb-4">
           <label class="block mb-2">
-            {{ gameMode === "vs-computer" ? t("player") : t("player1") }}
+            {{ t("player") }}
           </label>
           <div class="flex gap-2">
             <input
@@ -119,23 +49,15 @@
           </div>
         </div>
         <!-- Computer player name (shown only for vs-computer mode) -->
-        <div
-          v-if="
-            gameMode === 'vs-computer' ||
-            (gameMode === 'multiplayer' && multiplayerRole === 'join')
-          "
-          class="mb-4"
-        >
+        <div class="mb-4">
           <label class="block mb-2">
-            {{ gameMode === "vs-computer" ? t("computer") : t("player2") }}
+            {{ t("computer") }}
           </label>
           <div class="flex gap-2">
             <input
               v-model="player2Name"
               type="text"
-              :placeholder="
-                gameMode === 'vs-computer' ? t('computer') : t('enterName')
-              "
+              :placeholder="t('computer')"
               class="flex-1 p-2 rounded border input-field"
             />
             <button
@@ -176,13 +98,7 @@
         size="lg"
         variant="primary"
       >
-        {{
-          gameMode === "vs-computer"
-            ? t("newGame")
-            : multiplayerRole === "host"
-            ? t("createGame")
-            : t("joinGame")
-        }}
+        {{ t("newGame") }}
       </BaseButton>
     </div>
   </div>
@@ -201,13 +117,7 @@ import { useDark, useToggle } from "@vueuse/core"
 const { MIN_QUALIFYING_SCORE_OPTIONS, startGame } = useGameStore()
 const { isEnglish, toggleLanguage, t } = useI18n()
 const isDark = useDark()
-const isDev = import.meta.env.DEV
 const toggleDark = useToggle(isDark)
-
-// Game mode (vs friend or vs computer)
-const gameMode = ref<"vs-computer" | "multiplayer">("vs-computer")
-const multiplayerRole = ref<"host" | "join">("host")
-const multiplayerCode = ref(generateRandomCode())
 
 // --- MENU STATE PERSISTENCE ---
 const MENU_STATE_KEY = "greed-game-menu-state"
@@ -216,9 +126,6 @@ function saveMenuState() {
   localStorage.setItem(
     MENU_STATE_KEY,
     JSON.stringify({
-      gameMode: gameMode.value,
-      multiplayerRole: multiplayerRole.value,
-      multiplayerCode: multiplayerCode.value,
       qualificationScore: qualificationScore.value,
       player1Name: player1Name.value,
       player2Name: player2Name.value,
@@ -231,9 +138,6 @@ function loadMenuState() {
     const raw = localStorage.getItem(MENU_STATE_KEY)
     if (!raw) return
     const state = JSON.parse(raw)
-    if (state.gameMode) gameMode.value = state.gameMode
-    if (state.multiplayerRole) multiplayerRole.value = state.multiplayerRole
-    if (state.multiplayerCode) multiplayerCode.value = state.multiplayerCode
     if (state.qualificationScore)
       qualificationScore.value = state.qualificationScore
     if (state.player1Name) player1Name.value = state.player1Name
@@ -262,44 +166,13 @@ const player2Name = ref("")
 
 // --- WATCHERS FOR MENU STATE PERSISTENCE ---
 watch(
-  [
-    gameMode,
-    multiplayerRole,
-    multiplayerCode,
-    qualificationScore,
-    player1Name,
-    player2Name,
-  ],
+  [qualificationScore, player1Name, player2Name],
   saveMenuState,
   { deep: true }
 )
 
 onMounted(() => {
   loadMenuState()
-})
-
-function onMultiplayerRoleChange(newRole: "host" | "join") {
-  multiplayerRole.value = newRole
-  if (newRole === "host") {
-    player2Name.value = ""
-  } else if (newRole === "join") {
-    player1Name.value = ""
-  }
-}
-
-// Watch for multiplayer mode changes
-watch(gameMode, (newMode: "vs-computer" | "multiplayer") => {
-  if (newMode === "multiplayer") {
-    multiplayerRole.value = "host"
-    multiplayerCode.value = generateRandomCode()
-  }
-})
-watch(multiplayerRole, (newRole: "host" | "join") => {
-  if (newRole === "join") {
-    multiplayerCode.value = ""
-  } else {
-    multiplayerCode.value = generateRandomCode()
-  }
 })
 
 // Random nickname generator
@@ -353,73 +226,19 @@ const generateRandomName = (playerNumber: 1 | 2) => {
   }
 }
 
-// Multiplayer helpers
-function generateRandomCode() {
-  return Math.random().toString(36).substring(2, 8).toUpperCase()
-}
-
 const router = useRouter()
 
 const handleStartGame = () => {
-  // Set default names if empty
-  let player1NameValue = player1Name.value.trim()
-  let player2NameValue = player2Name.value.trim()
+  const player1NameValue = player1Name.value.trim() || t("player")
+  const player2NameValue = player2Name.value.trim() || t("computer")
 
-  // If playing vs computer and player name empty, use "Player"
-  if (gameMode.value === "vs-computer") {
-    if (!player1NameValue) {
-      player1NameValue = t("player")
-    }
-    if (!player2NameValue) {
-      player2NameValue = t("computer")
-    }
-  } else {
-    // If playing vs friend and player names empty, use "Player 1" and "Player 2"
-    if (!player1NameValue) {
-      player1NameValue = t("player1")
-    }
-    if (!player2NameValue) {
-      player2NameValue = t("player2")
-    }
-  }
-  // Set the qualification score (already set by selector)
-  // setQualificationScore(qualificationScore.value) // Not needed, handled by computed setter
-  // Create player objects
   const players = [
-    {
-      id: 0,
-      name: player1NameValue,
-      isComputer: false,
-    },
-    {
-      id: 1,
-      name: player2NameValue,
-      isComputer: gameMode.value === "vs-computer",
-    },
+    { id: 0, name: player1NameValue, isComputer: false },
+    { id: 1, name: player2NameValue, isComputer: true },
   ]
-  if (gameMode.value === "multiplayer") {
-    startGame(players, {
-      mode: "multiplayer",
-      code: multiplayerCode.value,
-      role: multiplayerRole.value,
-      qualificationScore: qualificationScore.value,
-    })
-    // If joining, update player 2 name in Firebase
-    if (multiplayerRole.value === "join") {
-      setTimeout(() => {
-        const store = useGameStore()
-        store.updateJoiningPlayerName(player2Name.value.trim() || t("player2"))
-      }, 300)
-    }
-    localStorage.setItem("multiplayerRole", multiplayerRole.value)
-    router.push(`/game/${multiplayerCode.value}`)
-  } else {
-    startGame(players, {
-      mode: "vs-computer",
-      qualificationScore: qualificationScore.value,
-    })
-    router.push("/game")
-  }
+
+  startGame(players, { qualificationScore: qualificationScore.value })
+  router.push("/game")
 }
 </script>
 

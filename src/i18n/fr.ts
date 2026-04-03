@@ -61,7 +61,7 @@ export default {
 
   // Bust messages
   bustExceededMax: "ÉCHEC! Dépassement de 10,000 points",
-  bustGeneric: "ÉCHEC! Aucun dé comptabilisable",
+  bustGeneric: "Nénette ! Aucun dé comptabilisable",
   bustLostPoints: "Échec! {0} a perdu {1} points de ce tour!",
 
   // Qualification warning
