@@ -268,6 +268,7 @@ import DevPanel from "../components/DevPanel.vue"
 import BaseButton from "../components/BaseButton.vue"
 import { computed, onMounted, onUnmounted, ref, watch } from "vue"
 import { useRouter, useRoute } from "vue-router"
+import { useWebHaptics } from "web-haptics/vue"
 
 const store = useGameStore()
 const router = useRouter()
@@ -275,6 +276,7 @@ const route = useRoute()
 const isDev = import.meta.env.DEV
 const { t, isEnglish, toggleLanguage } = useI18n()
 const { soundVolume, spinningDice, playDiceSound, startSpinAnimation, onDiceRolled } = useGameSound()
+const { trigger: haptic } = useWebHaptics()
 
 // --- Multiplayer ---
 const multiplayer = useMultiplayer()
@@ -437,6 +439,15 @@ const rollDiceButtonTooltip = computed(() => {
   return t("rollDiceTooltip")
 })
 
+// --- Haptic feedback reactions ---
+watch(() => store.gameState.isBust, (isBust) => {
+  if (isBust && store.isPlayerTurn) haptic("error")
+})
+
+watch(() => store.gameState.isGameOver, (isGameOver) => {
+  if (isGameOver) haptic([{ duration: 80, intensity: 1 }, { delay: 60, duration: 150, intensity: 0.8 }, { delay: 80, duration: 300, intensity: 0.6 }])
+})
+
 // --- Actions ---
 const isGuest = computed(() => isOnline.value && store.multiplayerRole === "guest")
 
@@ -448,6 +459,7 @@ function handleResetGame() {
 
 function handleKeepScore() {
   if (!store.canKeepScore || !store.isPlayerTurn) return
+  haptic("success")
   if (isGuest.value) {
     multiplayer.sendAction({ kind: "bank" })
   } else {
@@ -457,6 +469,7 @@ function handleKeepScore() {
 
 function handleRollDice() {
   if (!store.canRoll || !store.isPlayerTurn) return
+  haptic("nudge")
   if (isGuest.value) {
     multiplayer.sendAction({ kind: "roll" })
   } else {
@@ -468,6 +481,7 @@ function handleRollDice() {
 }
 
 function handleToggleDie(index: number) {
+  haptic([{ duration: 30, intensity: 0.4 }])
   if (isGuest.value) {
     const die = store.gameState.dice[index]
     multiplayer.sendAction({ kind: die.isSelected ? "deselect-die" : "select-die", index })
